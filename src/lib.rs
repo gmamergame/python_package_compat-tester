@@ -44,6 +44,8 @@ mod tests {
         python_version: &str,
         sys_platform: &str,
     ) -> pep508_rs::MarkerEnvironment {
+        let python_full_version = format!("{python_version}.0");
+
         pep508_rs::MarkerEnvironment::try_from(pep508_rs::MarkerEnvironmentBuilder {
             implementation_name: "cpython",
             implementation_version: "3.12.0",
@@ -61,11 +63,7 @@ mod tests {
                 "Linux"
             },
             platform_version: "",
-            python_full_version: if python_version == "3.12" {
-                "3.12.0"
-            } else {
-                "3.9.0"
-            },
+            python_full_version: &python_full_version,
             python_version,
             sys_platform,
         })
@@ -1708,14 +1706,12 @@ dependencies = [
             .unwrap()
         );
 
-        assert!(
-        !crate::dependencies::dependency_applies_to_python_version(
+        assert!(!crate::dependencies::dependency_applies_to_python_version(
             &dependency,
             &linux,
             "3.10",
         )
-        .unwrap()
-    );
+        .unwrap());
 
         assert!(
             !crate::dependencies::dependency_applies_to_python_version(
@@ -1748,6 +1744,181 @@ dependencies = [
         .unwrap();
 
         assert_eq!(compatible, ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]);
+    }
+
+    #[test]
+    fn dependency_marker_matches_active_extra() {
+        let dependency = Dependency {
+            name: "requests".to_owned(),
+            extras: vec![],
+            specifier: None,
+            url: None,
+            marker: Some("extra == \"security\"".to_owned()),
+            source: std::path::PathBuf::from("requirements.txt"),
+        };
+
+        let environment = test_marker_environment("3.12", "linux");
+        let security = ["security".parse::<pep508_rs::ExtraName>().unwrap()];
+        let docs = ["docs".parse::<pep508_rs::ExtraName>().unwrap()];
+
+        assert!(
+            super::dependencies::dependency_applies_to_environment_with_extras(
+                &dependency,
+                &environment,
+                &security,
+            )
+            .unwrap()
+        );
+
+        assert!(
+            !super::dependencies::dependency_applies_to_environment_with_extras(
+                &dependency,
+                &environment,
+                &docs,
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn dependency_marker_not_equal_respects_active_extra() {
+        let dependency = Dependency {
+            name: "requests".to_owned(),
+            extras: vec![],
+            specifier: None,
+            url: None,
+            marker: Some("extra != \"security\"".to_owned()),
+            source: std::path::PathBuf::from("requirements.txt"),
+        };
+
+        let environment = test_marker_environment("3.12", "linux");
+        let security = ["security".parse::<pep508_rs::ExtraName>().unwrap()];
+        let docs = ["docs".parse::<pep508_rs::ExtraName>().unwrap()];
+
+        assert!(
+            !super::dependencies::dependency_applies_to_environment_with_extras(
+                &dependency,
+                &environment,
+                &security,
+            )
+            .unwrap()
+        );
+
+        assert!(
+            super::dependencies::dependency_applies_to_environment_with_extras(
+                &dependency,
+                &environment,
+                &docs,
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn candidate_python_version_evaluation_preserves_active_extra() {
+        let dependency = Dependency {
+            name: "requests".to_owned(),
+            extras: vec![],
+            specifier: None,
+            url: None,
+            marker: Some("python_version >= \"3.10\" and extra == \"security\"".to_owned()),
+            source: std::path::PathBuf::from("requirements.txt"),
+        };
+
+        let environment = test_marker_environment("3.12", "linux");
+        let security = ["security".parse::<pep508_rs::ExtraName>().unwrap()];
+        let docs = ["docs".parse::<pep508_rs::ExtraName>().unwrap()];
+
+        assert!(
+            super::dependencies::dependency_applies_to_python_version_with_extras(
+                &dependency,
+                &environment,
+                "3.12",
+                &security,
+            )
+            .unwrap()
+        );
+
+        assert!(
+            !super::dependencies::dependency_applies_to_python_version_with_extras(
+                &dependency,
+                &environment,
+                "3.12",
+                &docs,
+            )
+            .unwrap()
+        );
+
+        assert!(
+            !super::dependencies::dependency_applies_to_python_version_with_extras(
+                &dependency,
+                &environment,
+                "3.9",
+                &security,
+            )
+            .unwrap()
+        );
+    }
+
+    #[test]
+    fn dependency_marker_respects_boolean_precedence() {
+        let dependency = Dependency {
+        name: "example".to_owned(),
+        extras: vec![],
+        specifier: None,
+        url: None,
+        marker: Some(
+            "python_version < \"3.10\" or python_version >= \"3.12\" and sys_platform == \"win32\""
+                .to_owned(),
+        ),
+        source: std::path::PathBuf::from("requirements.txt"),
+    };
+
+        let python39 = test_marker_environment("3.9", "linux");
+        let python311_windows = test_marker_environment("3.11", "win32");
+        let python312_windows = test_marker_environment("3.12", "win32");
+        let python312_linux = test_marker_environment("3.12", "linux");
+
+        assert!(dependency_applies_to_environment(&dependency, &python39).unwrap());
+        assert!(!dependency_applies_to_environment(&dependency, &python311_windows).unwrap());
+        assert!(dependency_applies_to_environment(&dependency, &python312_windows).unwrap());
+        assert!(!dependency_applies_to_environment(&dependency, &python312_linux).unwrap());
+    }
+
+    #[test]
+    fn dependency_marker_handles_python_version_equality() {
+        let dependency = Dependency {
+            name: "example".to_owned(),
+            extras: vec![],
+            specifier: None,
+            url: None,
+            marker: Some("python_version == \"3.12\"".to_owned()),
+            source: std::path::PathBuf::from("requirements.txt"),
+        };
+
+        let python312 = test_marker_environment("3.12", "linux");
+        let python313 = test_marker_environment("3.13", "linux");
+
+        assert!(dependency_applies_to_environment(&dependency, &python312).unwrap());
+        assert!(!dependency_applies_to_environment(&dependency, &python313).unwrap());
+    }
+
+    #[test]
+    fn dependency_marker_handles_platform_and_implementation() {
+        let dependency = Dependency {
+            name: "example".to_owned(),
+            extras: vec![],
+            specifier: None,
+            url: None,
+            marker: Some(
+                "sys_platform == \"linux\" and implementation_name == \"cpython\"".to_owned(),
+            ),
+            source: std::path::PathBuf::from("requirements.txt"),
+        };
+
+        let linux = test_marker_environment("3.12", "linux");
+
+        assert!(dependency_applies_to_environment(&dependency, &linux).unwrap());
     }
 
     fn temporary_project() -> std::path::PathBuf {

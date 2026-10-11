@@ -30,6 +30,53 @@ pub fn dependency_applies_to_environment(
 
     Ok(parsed.evaluate_markers(environment, &[]))
 }
+pub fn dependency_applies_to_environment_with_extras(
+    dependency: &Dependency,
+    environment: &MarkerEnvironment,
+    extras: &[pep508_rs::ExtraName],
+) -> Result<bool, String> {
+    let Some(marker) = dependency.marker.as_deref() else {
+        return Ok(true);
+    };
+
+    let requirement = format!("{}; {}", dependency.name, marker);
+    let working_dir = dependency.source.parent().unwrap_or_else(|| Path::new("."));
+
+    let parsed = Requirement::<VerbatimUrl>::parse(&requirement, working_dir)
+        .map_err(|error| format!("Invalid environment marker: {error}"))?;
+
+    Ok(parsed.evaluate_markers(environment, extras))
+}
+
+pub fn dependency_applies_to_python_version_with_extras(
+    dependency: &Dependency,
+    environment: &MarkerEnvironment,
+    python_version: &str,
+    extras: &[pep508_rs::ExtraName],
+) -> Result<bool, String> {
+    let current_python_version = environment.python_version().to_string();
+
+    let full_version = if python_version == current_python_version {
+        environment.python_full_version().to_string()
+    } else {
+        format!("{python_version}.0")
+    };
+
+    let candidate_version = python_version
+        .parse::<Version>()
+        .map_err(|error| format!("Invalid candidate Python version: {error}"))?;
+
+    let candidate_full_version = full_version
+        .parse::<Version>()
+        .map_err(|error| format!("Invalid candidate full Python version: {error}"))?;
+
+    let candidate_environment = environment
+        .clone()
+        .with_python_version(candidate_version)
+        .with_python_full_version(candidate_full_version);
+
+    dependency_applies_to_environment_with_extras(dependency, &candidate_environment, extras)
+}
 
 pub fn dependency_applies_to_python_version(
     dependency: &Dependency,
