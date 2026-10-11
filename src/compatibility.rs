@@ -6,10 +6,15 @@ use pep508_rs::MarkerEnvironment;
 pub fn select_package_release<'a>(
     metadata: &'a PackageMetadata,
     specifier: Option<&str>,
-) -> Option<&'a PackageRelease> {
+) -> Result<Option<&'a PackageRelease>, String> {
+    let validated_specifier = specifier
+        .map(|specifier| parse_package_specifier(specifier).map(|parsed| (specifier, parsed)))
+        .transpose()?;
+
     let matching = metadata.releases.iter().filter(|release| {
-        specifier
-            .map(|specifier| package_version_satisfies(&release.version, specifier))
+        validated_specifier
+            .as_ref()
+            .map(|(specifier, _)| package_version_satisfies_validated(&release.version, specifier))
             .unwrap_or(true)
     });
 
@@ -18,8 +23,8 @@ pub fn select_package_release<'a>(
         .filter(|release| !is_prerelease(&release.version))
         .max_by(|left, right| compare_versions(&left.version, &right.version));
 
-    stable
-        .or_else(|| matching.max_by(|left, right| compare_versions(&left.version, &right.version)))
+    Ok(stable
+        .or_else(|| matching.max_by(|left, right| compare_versions(&left.version, &right.version))))
 }
 
 pub fn compatible_python_versions(releases: &[PackageRelease]) -> Vec<String> {
@@ -226,11 +231,23 @@ fn parse_package_version(version: &str) -> ParsedPackageVersion {
     }
 }
 
-pub(crate) fn package_version_satisfies(version: &str, requirement: &str) -> bool {
+#[cfg(test)]
+pub(crate) fn package_version_satisfies(version: &str, requirement: &str) -> Result<bool, String> {
+    parse_package_specifier(requirement)?;
+    Ok(package_version_satisfies_validated(version, requirement))
+}
+
+fn parse_package_specifier(requirement: &str) -> Result<pep440_rs::VersionSpecifiers, String> {
     if requirement.trim().is_empty() {
-        return false;
+        return Err("Version specifier cannot be empty".to_owned());
     }
 
+    requirement
+        .parse::<pep440_rs::VersionSpecifiers>()
+        .map_err(|error| format!("Invalid package version specifier '{requirement}': {error}"))
+}
+
+fn package_version_satisfies_validated(version: &str, requirement: &str) -> bool {
     requirement
         .split(',')
         .map(str::trim)

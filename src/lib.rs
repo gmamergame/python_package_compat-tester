@@ -43,6 +43,11 @@ mod tests {
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    fn package_version_satisfies(version: &str, requirement: &str) -> bool {
+        super::package_version_satisfies(version, requirement)
+            .expect("test specifier should be valid")
+    }
+
     fn test_marker_environment(
         python_version: &str,
         sys_platform: &str,
@@ -279,7 +284,9 @@ dependencies = [
             ],
         };
 
-        let release = select_package_release(&metadata, Some("==0.29.0")).unwrap();
+        let release = select_package_release(&metadata, Some("==0.29.0"))
+            .unwrap()
+            .unwrap();
 
         assert_eq!(release.version, "0.29.0");
         assert_eq!(release.requires_python, Some(">=3.8".to_owned()));
@@ -307,7 +314,9 @@ dependencies = [
             ],
         };
 
-        let release = select_package_release(&metadata, Some(">=1.0,<2.0")).unwrap();
+        let release = select_package_release(&metadata, Some(">=1.0,<2.0"))
+            .unwrap()
+            .unwrap();
 
         assert_eq!(release.version, "1.5.0");
     }
@@ -330,7 +339,7 @@ dependencies = [
             ],
         };
 
-        let release = select_package_release(&metadata, None).unwrap();
+        let release = select_package_release(&metadata, None).unwrap().unwrap();
 
         assert_eq!(release.version, "2.0.0");
     }
@@ -353,7 +362,9 @@ dependencies = [
             ],
         };
 
-        let release = select_package_release(&metadata, Some("==3.9.0")).unwrap();
+        let release = select_package_release(&metadata, Some("==3.9.0"))
+            .unwrap()
+            .unwrap();
 
         assert_eq!(release.version, "3.9.0");
     }
@@ -384,7 +395,9 @@ dependencies = [
             ],
         };
 
-        let release = select_package_release(&metadata, Some(">=3.8.0")).unwrap();
+        let release = select_package_release(&metadata, Some(">=3.8.0"))
+            .unwrap()
+            .unwrap();
 
         assert_eq!(release.version, "4.0.0");
     }
@@ -429,7 +442,9 @@ dependencies = [
             ],
         };
 
-        let release = select_package_release(&metadata, Some(">=2.0.0")).unwrap();
+        let release = select_package_release(&metadata, Some(">=2.0.0"))
+            .unwrap()
+            .unwrap();
 
         assert_eq!(release.version, "3.0.0");
     }
@@ -493,8 +508,6 @@ dependencies = [
 
     #[test]
     fn supports_compatible_release_operator() {
-        use super::package_version_satisfies;
-
         assert!(package_version_satisfies("3.12.0", "~=3.12.0"));
         assert!(package_version_satisfies("3.12.5", "~=3.12.0"));
         assert!(!package_version_satisfies("3.13.0", "~=3.12.0"));
@@ -506,8 +519,6 @@ dependencies = [
 
     #[test]
     fn supports_equal_version_wildcard() {
-        use super::package_version_satisfies;
-
         assert!(package_version_satisfies("3.12.0", "==3.12.*"));
         assert!(package_version_satisfies("3.12.5", "==3.12.*"));
         assert!(package_version_satisfies("3.12", "==3.12.*"));
@@ -517,8 +528,6 @@ dependencies = [
 
     #[test]
     fn supports_not_equal_version_wildcard() {
-        use super::package_version_satisfies;
-
         assert!(package_version_satisfies("3.11.9", "!=3.12.*"));
         assert!(!package_version_satisfies("3.12.0", "!=3.12.*"));
         assert!(!package_version_satisfies("3.12.5", "!=3.12.*"));
@@ -543,8 +552,6 @@ dependencies = [
 
     #[test]
     fn supports_basic_comparison_operators() {
-        use super::package_version_satisfies;
-
         assert!(package_version_satisfies("2.0", "==2.0"));
         assert!(!package_version_satisfies("2.1", "==2.0"));
 
@@ -566,8 +573,6 @@ dependencies = [
 
     #[test]
     fn supports_combined_version_specifiers() {
-        use super::package_version_satisfies;
-
         assert!(package_version_satisfies("2.5.0", ">=2.0,<3.0"));
         assert!(package_version_satisfies("2.5.0", ">=2.0,!=2.4.0,<3.0"));
         assert!(!package_version_satisfies("3.0.0", ">=2.0,<3.0"));
@@ -576,8 +581,6 @@ dependencies = [
 
     #[test]
     fn compatible_release_operator_respects_release_prefix() {
-        use super::package_version_satisfies;
-
         assert!(package_version_satisfies("1.4.5", "~=1.4.5"));
         assert!(package_version_satisfies("1.4.9", "~=1.4.5"));
         assert!(!package_version_satisfies("1.5.0", "~=1.4.5"));
@@ -588,12 +591,27 @@ dependencies = [
 
     #[test]
     fn rejects_invalid_version_specifiers() {
-        use super::package_version_satisfies;
+        assert!(super::package_version_satisfies("2.0.0", "=>2.0.0").is_err());
+        assert!(super::package_version_satisfies("2.0.0", "><2.0.0").is_err());
+        assert!(super::package_version_satisfies("2.0.0", "").is_err());
+        assert!(super::package_version_satisfies("2.0.0", "==").is_err());
+    }
 
-        assert!(!package_version_satisfies("2.0.0", "=>2.0.0"));
-        assert!(!package_version_satisfies("2.0.0", "><2.0.0"));
-        assert!(!package_version_satisfies("2.0.0", ""));
-        assert!(!package_version_satisfies("2.0.0", "=="));
+    #[test]
+    fn rejects_malformed_package_version_operands() {
+        assert!(super::package_version_satisfies("2.0.0", "==2.invalid").is_err());
+
+        let metadata = super::PackageMetadata {
+            name: "example".to_owned(),
+            latest_version: "2.0.0".to_owned(),
+            requires_python: None,
+            releases: vec![super::PackageRelease {
+                version: "2.0.0".to_owned(),
+                requires_python: None,
+            }],
+        };
+
+        assert!(select_package_release(&metadata, Some(">=2.invalid")).is_err());
     }
 
     #[test]

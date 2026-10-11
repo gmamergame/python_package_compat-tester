@@ -76,7 +76,7 @@ automatically.
 -   [/] Parse `==`, `!=`, `<`, `<=`, `>`, `>=`, `~=`, and wildcard
     specifiers.
     -   [x] Cover common operators and wildcard forms with unit tests.
-    -   [ ] Validate version operands once with `pep440_rs` and return an error rather than coercing malformed versions.
+    -   [x] Validate version operands once with `pep440_rs` and return an error rather than coercing malformed versions.
     -   [ ] Implement exact and ordered comparisons using parsed PEP 440 versions.
     -   [ ] Implement `~=` bounds for two-component and three-or-more-component release segments.
     -   [ ] Implement `==X.*` and `!=X.*` using PEP 440 prefix matching, including pre/post/local versions.
