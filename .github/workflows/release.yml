@@ -73,17 +73,65 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Create draft if needed
+      - name: Create or update draft release notes
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
+        shell: bash
         run: |
-          if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" \
-              --draft \
-              --title "$TAG" \
-              --generate-notes
+          set -euo pipefail
+
+          VERSION="${TAG#v}"
+
+          NOTES=$(awk -v version="$VERSION" '
+            $0 ~ "^## " version "([[:space:]]|$)" {
+              found = 1
+              next
+            }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md)
+
+          if [[ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]]; then
+            echo "No changelog entry found for version $VERSION in CHANGELOG.md"
+            exit 1
           fi
+
+          API_URL="https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/$TAG"
+
+          HTTP_STATUS=$(curl --silent --show-error \
+            --output release-response.json \
+            --write-out '%{http_code}' \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "$API_URL")
+
+          case "$HTTP_STATUS" in
+            200)
+              IS_DRAFT=$(jq -r '.draft' release-response.json)
+
+              if [[ "$IS_DRAFT" != "true" ]]; then
+                echo "Release $TAG is already published; refusing to modify it."
+                exit 1
+              fi
+
+              gh release edit "$TAG" --notes "$NOTES"
+              ;;
+            404)
+              gh release create "$TAG" \
+                --draft \
+                --title "$TAG" \
+                --notes "$NOTES"
+              ;;
+            *)
+              echo "GitHub API returned HTTP $HTTP_STATUS; refusing to modify releases."
+              cat release-response.json
+              exit 1
+              ;;
+          esac
+
+          rm -f release-response.json
 
   upload-binaries:
     name: Build ${{ matrix.target }}
