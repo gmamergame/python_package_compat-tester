@@ -572,6 +572,14 @@ dependencies = [
     }
 
     #[test]
+    fn exact_and_ordered_specifiers_use_pep440_versions() {
+        assert!(package_version_satisfies("1!1.0", ">2.0"));
+        assert!(package_version_satisfies("1.0.post2", ">1.0.post1"));
+        assert!(package_version_satisfies("1.0+local", "==1.0"));
+        assert!(!package_version_satisfies("1.0+local", "!=1.0"));
+    }
+
+    #[test]
     fn supports_combined_version_specifiers() {
         assert!(package_version_satisfies("2.5.0", ">=2.0,<3.0"));
         assert!(package_version_satisfies("2.5.0", ">=2.0,!=2.4.0,<3.0"));

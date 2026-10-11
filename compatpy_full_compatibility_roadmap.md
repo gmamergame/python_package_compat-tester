@@ -77,7 +77,7 @@ automatically.
     specifiers.
     -   [x] Cover common operators and wildcard forms with unit tests.
     -   [x] Validate version operands once with `pep440_rs` and return an error rather than coercing malformed versions.
-    -   [ ] Implement exact and ordered comparisons using parsed PEP 440 versions.
+    -   [x] Implement exact and ordered comparisons using parsed PEP 440 versions.
     -   [ ] Implement `~=` bounds for two-component and three-or-more-component release segments.
     -   [ ] Implement `==X.*` and `!=X.*` using PEP 440 prefix matching, including pre/post/local versions.
     -   [ ] Add one table-driven operator test per operator with matching, non-matching, and boundary values.

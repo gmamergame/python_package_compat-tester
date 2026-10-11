@@ -14,7 +14,9 @@ pub fn select_package_release<'a>(
     let matching = metadata.releases.iter().filter(|release| {
         validated_specifier
             .as_ref()
-            .map(|(specifier, _)| package_version_satisfies_validated(&release.version, specifier))
+            .map(|(_, specifiers)| {
+                package_version_satisfies_validated(&release.version, specifiers)
+            })
             .unwrap_or(true)
     });
 
@@ -233,8 +235,8 @@ fn parse_package_version(version: &str) -> ParsedPackageVersion {
 
 #[cfg(test)]
 pub(crate) fn package_version_satisfies(version: &str, requirement: &str) -> Result<bool, String> {
-    parse_package_specifier(requirement)?;
-    Ok(package_version_satisfies_validated(version, requirement))
+    let specifiers = parse_package_specifier(requirement)?;
+    Ok(package_version_satisfies_validated(version, &specifiers))
 }
 
 fn parse_package_specifier(requirement: &str) -> Result<pep440_rs::VersionSpecifiers, String> {
@@ -247,11 +249,24 @@ fn parse_package_specifier(requirement: &str) -> Result<pep440_rs::VersionSpecif
         .map_err(|error| format!("Invalid package version specifier '{requirement}': {error}"))
 }
 
-fn package_version_satisfies_validated(version: &str, requirement: &str) -> bool {
-    requirement
-        .split(',')
-        .map(str::trim)
-        .all(|part| !part.is_empty() && satisfies_package_specifier(version, part))
+fn package_version_satisfies_validated(
+    version: &str,
+    specifiers: &pep440_rs::VersionSpecifiers,
+) -> bool {
+    let Ok(parsed_version) = version.parse::<pep440_rs::Version>() else {
+        return false;
+    };
+
+    specifiers
+        .iter()
+        .all(|specifier| match specifier.operator() {
+            pep440_rs::Operator::EqualStar
+            | pep440_rs::Operator::NotEqualStar
+            | pep440_rs::Operator::TildeEqual => {
+                satisfies_package_specifier(version, &specifier.to_string())
+            }
+            _ => specifier.contains(&parsed_version),
+        })
 }
 
 fn satisfies_package_specifier(version: &str, specifier: &str) -> bool {
