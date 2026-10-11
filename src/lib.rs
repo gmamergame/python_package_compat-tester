@@ -510,11 +510,17 @@ dependencies = [
     fn supports_compatible_release_operator() {
         assert!(package_version_satisfies("3.12.0", "~=3.12.0"));
         assert!(package_version_satisfies("3.12.5", "~=3.12.0"));
+        assert!(!package_version_satisfies("3.11.9", "~=3.12.0"));
         assert!(!package_version_satisfies("3.13.0", "~=3.12.0"));
 
         assert!(package_version_satisfies("3.12.0", "~=3.12"));
         assert!(package_version_satisfies("3.14.0", "~=3.12"));
+        assert!(!package_version_satisfies("2.9.9", "~=3.12"));
         assert!(!package_version_satisfies("4.0.0", "~=3.12"));
+
+        assert!(package_version_satisfies("1.4.5.0", "~=1.4.5.0"));
+        assert!(package_version_satisfies("1.4.5.9", "~=1.4.5.0"));
+        assert!(!package_version_satisfies("1.4.6.0", "~=1.4.5.0"));
     }
 
     #[test]

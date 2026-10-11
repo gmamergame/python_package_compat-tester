@@ -260,9 +260,7 @@ fn package_version_satisfies_validated(
     specifiers
         .iter()
         .all(|specifier| match specifier.operator() {
-            pep440_rs::Operator::EqualStar
-            | pep440_rs::Operator::NotEqualStar
-            | pep440_rs::Operator::TildeEqual => {
+            pep440_rs::Operator::EqualStar | pep440_rs::Operator::NotEqualStar => {
                 satisfies_package_specifier(version, &specifier.to_string())
             }
             _ => specifier.contains(&parsed_version),
