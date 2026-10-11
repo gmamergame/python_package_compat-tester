@@ -596,6 +596,58 @@ dependencies = [
     }
 
     #[test]
+    fn version_operators_match_nonmatch_and_boundary_cases() {
+        let cases = [
+            (
+                "==1.2.3",
+                [("1.2.3", true), ("1.2.4", false), ("1.2.3+local", true)],
+            ),
+            (
+                "!=1.2.3",
+                [("1.2.4", true), ("1.2.3", false), ("1.2.3+local", false)],
+            ),
+            (
+                "<1.2.3",
+                [("1.2.2", true), ("1.2.3", false), ("1.2.4", false)],
+            ),
+            (
+                "<=1.2.3",
+                [("1.2.2", true), ("1.2.4", false), ("1.2.3", true)],
+            ),
+            (
+                ">1.2.3",
+                [("1.2.4", true), ("1.2.3", false), ("1.2.2", false)],
+            ),
+            (
+                ">=1.2.3",
+                [("1.2.4", true), ("1.2.2", false), ("1.2.3", true)],
+            ),
+            (
+                "~=1.2.3",
+                [("1.2.4", true), ("1.3.0", false), ("1.2.3", true)],
+            ),
+            (
+                "==1.2.*",
+                [("1.2.4", true), ("1.3.0", false), ("1.2.0a1", true)],
+            ),
+            (
+                "!=1.2.*",
+                [("1.3.0", true), ("1.2.4", false), ("1.2.0.post1", false)],
+            ),
+        ];
+
+        for (specifier, candidates) in cases {
+            for (candidate, expected) in candidates {
+                assert_eq!(
+                    package_version_satisfies(candidate, specifier),
+                    expected,
+                    "specifier {specifier:?} with candidate {candidate:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn supports_combined_version_specifiers() {
         assert!(package_version_satisfies("2.5.0", ">=2.0,<3.0"));
         assert!(package_version_satisfies("2.5.0", ">=2.0,!=2.4.0,<3.0"));

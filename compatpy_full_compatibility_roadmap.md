@@ -80,7 +80,7 @@ automatically.
     -   [x] Implement exact and ordered comparisons using parsed PEP 440 versions.
     -   [x] Implement `~=` bounds for two-component and three-or-more-component release segments.
     -   [x] Implement `==X.*` and `!=X.*` using PEP 440 prefix matching, including pre/post/local versions.
-    -   [ ] Add one table-driven operator test per operator with matching, non-matching, and boundary values.
+    -   [x] Add one table-driven operator test per operator with matching, non-matching, and boundary values.
     -   [ ] Verify invalid operators, empty operands, and malformed comma-separated components return errors.
 -   [x] Support requirements without version specifiers.
     -   [x] Parse a bare package name with no version clause and store the missing specifier as absent.
