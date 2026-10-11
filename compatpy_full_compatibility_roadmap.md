@@ -64,12 +64,12 @@ automatically.
 
 ### Basic requirement parsing
 
--   [/] Parse and normalize package names.
+-   [x] Parse and normalize package names.
     -   [x] Parse package-name fields and lowercase names.
     -   [x] Add one canonical package-name normalization helper that implements PEP 503 separator/case rules.
     -   [x] Use canonical names for dependency identity, duplicate detection, and PyPI lookup.
     -   [x] Test that `my_package`, `my.package`, `my-package`, and mixed-case spellings normalize identically.
-    -   [ ] Test that normalization does not alter extra names, URL fragments, or version specifiers.
+    -   [x] Test that normalization does not alter extra names, URL fragments, or version specifiers.
 -   [/] Parse `==`, `!=`, `<`, `<=`, `>`, `>=`, `~=`, and wildcard
     specifiers.
     -   [x] Cover common operators and wildcard forms with unit tests.
