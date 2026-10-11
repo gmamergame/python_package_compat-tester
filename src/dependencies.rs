@@ -30,6 +30,7 @@ pub fn dependency_applies_to_environment(
 
     Ok(parsed.evaluate_markers(environment, &[]))
 }
+#[allow(dead_code)]
 pub fn dependency_applies_to_environment_with_extras(
     dependency: &Dependency,
     environment: &MarkerEnvironment,
@@ -48,6 +49,7 @@ pub fn dependency_applies_to_environment_with_extras(
     Ok(parsed.evaluate_markers(environment, extras))
 }
 
+#[allow(dead_code)]
 pub fn dependency_applies_to_python_version_with_extras(
     dependency: &Dependency,
     environment: &MarkerEnvironment,
