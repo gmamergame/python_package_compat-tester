@@ -16,6 +16,9 @@ automatically.
 
 ## How to execute this roadmap
 
+-   **Use one branch per parent issue.** Make every focused commit for
+    that parent issue on its branch; do not combine commits for separate
+    parent issues on one branch.
 -   **One unchecked leaf = one focused implementation change and one
     commit.** Do not combine sibling leaves just because they share a
     phase or module. A leaf may touch multiple files only when those
