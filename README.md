@@ -8,33 +8,68 @@ CompatPy analyzes a Python project, checks its dependencies against PyPI metadat
 
 - Discover dependencies from `requirements.txt`
 - Discover dependencies from `pyproject.toml`
-- Resolve dependency version constraints
+- Normalize dependency names using Python packaging conventions
+- Parse common version constraints and specifier combinations
 - Retrieve package metadata from PyPI
-- Analyze Python version compatibility
+- Evaluate Python-version compatibility for dependency requirements
 - Handle stable and prerelease package versions
 - Support Python version exclusions
 - Recommend compatible Python versions
-- Simple command-line interface
+- Provide a simple command-line interface
+
+## Current status
+
+CompatPy is a focused compatibility checker for Python projects. It is useful for common dependency and Python-version checks, but it is not intended to be treated as a full dependency solver or a complete replacement for a production environment resolver.
+
+Useful today:
+- common dependency declarations in `requirements.txt`
+- common dependency declarations in `pyproject.toml`
+- standard specifier parsing for many requirements
+- compatibility checks using published package metadata from PyPI
+
+Known limitations:
+- some advanced requirement forms are still partially supported or under active development
+- direct URL and some VCS-style requirements may be limited or unevenly handled
+- complex dependency graphs and edge-case metadata scenarios may not be fully covered
+- results depend on the dependency metadata available from the packages being analyzed
 
 ## Installation
 
-### Download
+### Download a release asset
 
-Pre-built binaries are available from the [GitHub Releases](https://github.com/oluxid/CompatPy/releases) page.
+Pre-built release assets are published on the [GitHub Releases](https://github.com/oluxid/CompatPy/releases) page.
 
-For Windows x86-64, download:
+The release workflow builds and uploads binaries for:
+
+- Linux x86_64
+- Linux ARM64
+- Windows x86_64
+- Windows ARM64
+- macOS x86_64
+- macOS ARM64
+
+It also builds a Windows MSI installer for the x86_64 release.
+
+Typical asset names look like:
 
 ```text
-compatpy-windows-x86_64.exe
+compatpy-x86_64-unknown-linux-gnu.tar.gz
+compatpy-aarch64-unknown-linux-gnu.tar.gz
+compatpy-x86_64-pc-windows-msvc.zip
+compatpy-aarch64-pc-windows-msvc.zip
+compatpy-x86_64-apple-darwin.tar.gz
+compatpy-aarch64-apple-darwin.tar.gz
+compatpy-<version>.msi
 ```
 
-Then run it from PowerShell:
+For example, on Windows x86_64 you can download the zip archive or the MSI installer, then run the binary from PowerShell:
 
 ```powershell
-.\compatpy-windows-x86_64.exe "C:\path\to\your\project"
+Expand-Archive compatpy-x86_64-pc-windows-msvc.zip -DestinationPath .\release
+.\release\compatpy.exe "C:\path\to\your\project"
 ```
 
-> A native Windows installer is planned for a future release. The installer will make it possible to run `compatpy` directly from PowerShell without specifying the executable path.
+Alternatively, install the MSI and run `compatpy` directly from PowerShell.
 
 ### From source
 
@@ -66,13 +101,13 @@ Pass the root directory of a Python project:
 compatpy "C:\path\to\your\project"
 ```
 
-When running a downloaded executable directly on Windows:
+When running a downloaded portable binary directly on Windows:
 
 ```powershell
-.\compatpy-windows-x86_64.exe "C:\path\to\your\project"
+.\release\compatpy.exe "C:\path\to\your\project"
 ```
 
-CompatPy will discover the project's dependencies, inspect their package metadata, and determine which Python versions satisfy the dependency requirements.
+CompatPy will discover the project's dependencies, inspect their package metadata, and recommend Python versions that satisfy the declared requirements.
 
 ### Help
 
