@@ -1,3 +1,5 @@
+use crate::package_name::normalize_package_name;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParsedRequirement {
     pub name: String,
@@ -101,7 +103,7 @@ pub fn parse_requirement(input: &str) -> Result<ParsedRequirement, String> {
     }
 
     Ok(ParsedRequirement {
-        name: name.to_ascii_lowercase(),
+        name: normalize_package_name(&name),
         extras,
         specifier,
         url,

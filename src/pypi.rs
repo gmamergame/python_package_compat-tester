@@ -1,3 +1,5 @@
+use crate::package_name::normalize_package_name;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackageMetadata {
     pub name: String,
@@ -52,12 +54,6 @@ struct PyPiInfo {
 #[derive(Debug, serde::Deserialize)]
 struct PyPiReleaseFile {
     requires_python: Option<String>,
-}
-
-pub(crate) fn normalize_package_name(name: &str) -> String {
-    let normalized = name.trim().to_ascii_lowercase().replace(['_', '.'], "-");
-    test_debug!("normalize_package_name: {name:?} -> {normalized:?}");
-    normalized
 }
 
 pub(crate) fn parse_pypi_metadata(contents: &str) -> Result<PackageMetadata, String> {

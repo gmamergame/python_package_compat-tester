@@ -10,6 +10,7 @@ macro_rules! test_debug {
 mod cli;
 mod compatibility;
 mod dependencies;
+mod package_name;
 mod pypi;
 mod requirements;
 
@@ -27,7 +28,9 @@ use compatibility::{compare_versions, package_version_satisfies};
 #[cfg(test)]
 use dependencies::strip_inline_comment;
 #[cfg(test)]
-use pypi::{normalize_package_name, parse_pypi_metadata};
+use package_name::normalize_package_name;
+#[cfg(test)]
+use pypi::parse_pypi_metadata;
 
 #[cfg(test)]
 mod tests {
@@ -87,7 +90,38 @@ mod tests {
 
     #[test]
     fn normalizes_package_names() {
+        for name in ["my_package", "my.package", "my-package", "My_Package"] {
+            assert_eq!(normalize_package_name(name), "my-package");
+        }
         assert_eq!(normalize_package_name("My_Package.Name"), "my-package-name");
+        assert_eq!(
+            normalize_package_name("My--Package..Name"),
+            "my-package-name"
+        );
+        assert_eq!(normalize_package_name("my.-_package"), "my-package");
+    }
+
+    #[test]
+    fn parses_requirement_with_canonical_name_without_changing_other_fields() {
+        assert_eq!(
+            parse_requirement("My_Package.Name[Security_Extra]>=1.2.3").unwrap(),
+            ParsedRequirement {
+                name: "my-package-name".to_owned(),
+                extras: vec!["security_extra".to_owned()],
+                specifier: ">=1.2.3".to_owned(),
+                url: None,
+            }
+        );
+
+        assert_eq!(
+            parse_requirement(
+                "My_Package.Name @ https://example.com/pkg.whl#subdirectory=src&sha256=abc"
+            )
+            .unwrap()
+            .url
+            .as_deref(),
+            Some("https://example.com/pkg.whl#subdirectory=src&sha256=abc")
+        );
     }
 
     #[test]

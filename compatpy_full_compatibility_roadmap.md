@@ -66,7 +66,7 @@ automatically.
 
 -   [/] Parse and normalize package names.
     -   [x] Parse package-name fields and lowercase names.
-    -   [ ] Add one canonical package-name normalization helper that implements PEP 503 separator/case rules.
+    -   [x] Add one canonical package-name normalization helper that implements PEP 503 separator/case rules.
     -   [ ] Use canonical names for dependency identity, duplicate detection, and PyPI lookup.
     -   [ ] Test that `my_package`, `my.package`, `my-package`, and mixed-case spellings normalize identically.
     -   [ ] Test that normalization does not alter extra names, URL fragments, or version specifiers.

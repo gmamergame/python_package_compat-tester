@@ -1,4 +1,4 @@
-use crate::pypi::normalize_package_name;
+use crate::package_name::normalize_package_name;
 use pep440_rs::Version;
 use pep508_rs::{MarkerEnvironment, Requirement, VerbatimUrl};
 use std::fs;
