@@ -913,6 +913,41 @@ dependencies = [
     }
 
     #[test]
+    fn canonical_names_define_dependency_identity_and_duplicate_detection() {
+        let project = temporary_project();
+        let requirements = project.join("requirements.txt");
+
+        fs::write(
+            &requirements,
+            "my_package\nmy.package\nMY-PACKAGE\nmy_package>=1.0\n",
+        )
+        .unwrap();
+
+        let dependencies = discover_dependencies(&project).unwrap();
+
+        assert_eq!(dependencies.len(), 2);
+        assert!(
+            dependencies
+                .iter()
+                .all(|dependency| dependency.name == "my-package")
+        );
+        assert_eq!(
+            dependencies
+                .iter()
+                .filter(|dependency| dependency.specifier.is_none())
+                .count(),
+            1
+        );
+        assert!(
+            dependencies
+                .iter()
+                .any(|dependency| dependency.specifier.as_deref() == Some(">=1.0"))
+        );
+
+        fs::remove_dir_all(project).unwrap();
+    }
+
+    #[test]
     fn ignores_malformed_extras() {
         let project = temporary_project();
         let requirements = project.join("requirements.txt");

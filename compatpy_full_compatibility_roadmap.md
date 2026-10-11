@@ -10,9 +10,9 @@ automatically.
 
 ---
 
-[x] = the stated subtask is implemented and supported by current code or tests
-[/] = partial implementation or partial verification; remaining scope is listed below
-[ ] = not implemented, or no evidence is available to mark it complete
+-   [x] = the stated subtask is implemented and supported by current code or tests
+-   [/] = partial implementation or partial verification; remaining scope is listed below
+-   [ ] = not implemented, or no evidence is available to mark it complete
 
 ## How to execute this roadmap
 
@@ -67,7 +67,7 @@ automatically.
 -   [/] Parse and normalize package names.
     -   [x] Parse package-name fields and lowercase names.
     -   [x] Add one canonical package-name normalization helper that implements PEP 503 separator/case rules.
-    -   [ ] Use canonical names for dependency identity, duplicate detection, and PyPI lookup.
+    -   [x] Use canonical names for dependency identity, duplicate detection, and PyPI lookup.
     -   [ ] Test that `my_package`, `my.package`, `my-package`, and mixed-case spellings normalize identically.
     -   [ ] Test that normalization does not alter extra names, URL fragments, or version specifiers.
 -   [/] Parse `==`, `!=`, `<`, `<=`, `>`, `>=`, `~=`, and wildcard
