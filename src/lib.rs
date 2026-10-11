@@ -528,8 +528,13 @@ dependencies = [
         assert!(package_version_satisfies("3.12.0", "==3.12.*"));
         assert!(package_version_satisfies("3.12.5", "==3.12.*"));
         assert!(package_version_satisfies("3.12", "==3.12.*"));
+        assert!(package_version_satisfies("3.12.0a1", "==3.12.*"));
+        assert!(package_version_satisfies("3.12.0.post1", "==3.12.*"));
+        assert!(package_version_satisfies("3.12.0+local", "==3.12.*"));
         assert!(!package_version_satisfies("3.13.0", "==3.12.*"));
         assert!(!package_version_satisfies("3.120.0", "==3.12.*"));
+        assert!(!package_version_satisfies("1!3.12.0", "==3.12.*"));
+        assert!(package_version_satisfies("1!3.12.0", "==1!3.12.*"));
     }
 
     #[test]
@@ -538,8 +543,13 @@ dependencies = [
         assert!(!package_version_satisfies("3.12.0", "!=3.12.*"));
         assert!(!package_version_satisfies("3.12.5", "!=3.12.*"));
         assert!(!package_version_satisfies("3.12", "!=3.12.*"));
+        assert!(!package_version_satisfies("3.12.0a1", "!=3.12.*"));
+        assert!(!package_version_satisfies("3.12.0.post1", "!=3.12.*"));
+        assert!(!package_version_satisfies("3.12.0+local", "!=3.12.*"));
         assert!(package_version_satisfies("3.13.0", "!=3.12.*"));
         assert!(package_version_satisfies("3.120.0", "!=3.12.*"));
+        assert!(package_version_satisfies("1!3.12.0", "!=3.12.*"));
+        assert!(!package_version_satisfies("1!3.12.0", "!=1!3.12.*"));
     }
 
     #[test]
