@@ -6,10 +6,17 @@ use pep508_rs::MarkerEnvironment;
 pub fn select_package_release<'a>(
     metadata: &'a PackageMetadata,
     specifier: Option<&str>,
-) -> Option<&'a PackageRelease> {
+) -> Result<Option<&'a PackageRelease>, String> {
+    let validated_specifier = specifier
+        .map(|specifier| parse_package_specifier(specifier).map(|parsed| (specifier, parsed)))
+        .transpose()?;
+
     let matching = metadata.releases.iter().filter(|release| {
-        specifier
-            .map(|specifier| package_version_satisfies(&release.version, specifier))
+        validated_specifier
+            .as_ref()
+            .map(|(_, specifiers)| {
+                package_version_satisfies_validated(&release.version, specifiers)
+            })
             .unwrap_or(true)
     });
 
@@ -18,8 +25,8 @@ pub fn select_package_release<'a>(
         .filter(|release| !is_prerelease(&release.version))
         .max_by(|left, right| compare_versions(&left.version, &right.version));
 
-    stable
-        .or_else(|| matching.max_by(|left, right| compare_versions(&left.version, &right.version)))
+    Ok(stable
+        .or_else(|| matching.max_by(|left, right| compare_versions(&left.version, &right.version))))
 }
 
 pub fn compatible_python_versions(releases: &[PackageRelease]) -> Vec<String> {
@@ -226,92 +233,31 @@ fn parse_package_version(version: &str) -> ParsedPackageVersion {
     }
 }
 
-pub(crate) fn package_version_satisfies(version: &str, requirement: &str) -> bool {
+#[cfg(test)]
+pub(crate) fn package_version_satisfies(version: &str, requirement: &str) -> Result<bool, String> {
+    let specifiers = parse_package_specifier(requirement)?;
+    Ok(package_version_satisfies_validated(version, &specifiers))
+}
+
+fn parse_package_specifier(requirement: &str) -> Result<pep440_rs::VersionSpecifiers, String> {
     if requirement.trim().is_empty() {
-        return false;
+        return Err("Version specifier cannot be empty".to_owned());
     }
 
     requirement
-        .split(',')
-        .map(str::trim)
-        .all(|part| !part.is_empty() && satisfies_package_specifier(version, part))
+        .parse::<pep440_rs::VersionSpecifiers>()
+        .map_err(|error| format!("Invalid package version specifier '{requirement}': {error}"))
 }
 
-fn satisfies_package_specifier(version: &str, specifier: &str) -> bool {
-    let operators = ["~=", ">=", "<=", "==", "!=", ">", "<"];
-
-    let Some((operator, required)) = operators.iter().find_map(|operator| {
-        specifier
-            .strip_prefix(operator)
-            .map(|required| (*operator, required.trim()))
-    }) else {
+fn package_version_satisfies_validated(
+    version: &str,
+    specifiers: &pep440_rs::VersionSpecifiers,
+) -> bool {
+    let Ok(parsed_version) = version.parse::<pep440_rs::Version>() else {
         return false;
     };
 
-    if required.is_empty() {
-        return false;
-    }
-
-    if required.starts_with('<')
-        || required.starts_with('>')
-        || required.starts_with('=')
-        || required.starts_with('!')
-        || required.starts_with('~')
-    {
-        return false;
-    }
-
-    if (operator == "==" || operator == "!=") && required.ends_with(".*") {
-        let prefix = &required[..required.len() - 2];
-
-        let matches = version == prefix
-            || version
-                .strip_prefix(prefix)
-                .is_some_and(|suffix| suffix.starts_with('.'));
-
-        return if operator == "==" { matches } else { !matches };
-    }
-    let comparison = compare_versions(version, required);
-
-    match operator {
-        "~=" => {
-            let parts: Vec<&str> = required.split('.').collect();
-
-            if parts.len() < 2 || parts.iter().any(|part| part.parse::<u64>().is_err()) {
-                return false;
-            }
-
-            let mut upper_parts: Vec<u64> = parts[..parts.len() - 1]
-                .iter()
-                .map(|part| part.parse::<u64>().unwrap())
-                .collect();
-
-            let Some(last) = upper_parts.last_mut() else {
-                return false;
-            };
-
-            let Some(next) = last.checked_add(1) else {
-                return false;
-            };
-
-            *last = next;
-            upper_parts.push(0);
-
-            let upper_bound = upper_parts
-                .iter()
-                .map(u64::to_string)
-                .collect::<Vec<_>>()
-                .join(".");
-
-            comparison != std::cmp::Ordering::Less
-                && compare_versions(version, &upper_bound) == std::cmp::Ordering::Less
-        }
-        ">=" => comparison != std::cmp::Ordering::Less,
-        "<=" => comparison != std::cmp::Ordering::Greater,
-        "==" => comparison == std::cmp::Ordering::Equal,
-        "!=" => comparison != std::cmp::Ordering::Equal,
-        ">" => comparison == std::cmp::Ordering::Greater,
-        "<" => comparison == std::cmp::Ordering::Less,
-        _ => false,
-    }
+    specifiers
+        .iter()
+        .all(|specifier| specifier.contains(&parsed_version))
 }

@@ -73,15 +73,15 @@ automatically.
     -   [x] Use canonical names for dependency identity, duplicate detection, and PyPI lookup.
     -   [x] Test that `my_package`, `my.package`, `my-package`, and mixed-case spellings normalize identically.
     -   [x] Test that normalization does not alter extra names, URL fragments, or version specifiers.
--   [/] Parse `==`, `!=`, `<`, `<=`, `>`, `>=`, `~=`, and wildcard
+-   [x] Parse `==`, `!=`, `<`, `<=`, `>`, `>=`, `~=`, and wildcard
     specifiers.
     -   [x] Cover common operators and wildcard forms with unit tests.
-    -   [ ] Validate version operands once with `pep440_rs` and return an error rather than coercing malformed versions.
-    -   [ ] Implement exact and ordered comparisons using parsed PEP 440 versions.
-    -   [ ] Implement `~=` bounds for two-component and three-or-more-component release segments.
-    -   [ ] Implement `==X.*` and `!=X.*` using PEP 440 prefix matching, including pre/post/local versions.
-    -   [ ] Add one table-driven operator test per operator with matching, non-matching, and boundary values.
-    -   [ ] Verify invalid operators, empty operands, and malformed comma-separated components return errors.
+    -   [x] Validate version operands once with `pep440_rs` and return an error rather than coercing malformed versions.
+    -   [x] Implement exact and ordered comparisons using parsed PEP 440 versions.
+    -   [x] Implement `~=` bounds for two-component and three-or-more-component release segments.
+    -   [x] Implement `==X.*` and `!=X.*` using PEP 440 prefix matching, including pre/post/local versions.
+    -   [x] Add one table-driven operator test per operator with matching, non-matching, and boundary values.
+    -   [x] Verify invalid operators, empty operands, and malformed comma-separated components return errors.
 -   [x] Support requirements without version specifiers.
     -   [x] Parse a bare package name with no version clause and store the missing specifier as absent.
     -   [x] Treat an absent specifier as unrestricted when selecting compatible package releases.

@@ -67,7 +67,7 @@ fn main() {
                 match fetch_pypi_metadata(&dependency.name) {
                     Ok(metadata) => {
                         match select_package_release(&metadata, dependency.specifier.as_deref()) {
-                            Some(release) => {
+                            Ok(Some(release)) => {
                                 println!(
                                     "    PyPI: {} | requires Python: {}",
                                     release.version,
@@ -76,8 +76,12 @@ fn main() {
 
                                 selected_releases.push(release.clone());
                             }
-                            None => {
+                            Ok(None) => {
                                 println!("    PyPI: no matching release");
+                            }
+                            Err(error) => {
+                                eprintln!("Error: {error}");
+                                process::exit(1);
                             }
                         }
                     }
