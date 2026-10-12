@@ -311,7 +311,7 @@ automatically.
     -   [x] Evaluate per-candidate markers in the library compatibility helper and cover with tests.
     -   [ ] Select candidate releases separately for each supported Python version.
     -   [ ] Evaluate each dependency marker in that candidate environment before applying release metadata.
-    -   [ ] Route CLI results through the marker-aware per-candidate helper.
+    -   [x] Route CLI results through the marker-aware per-candidate helper.
     -   [ ] Add a CLI fixture where a dependency applies to only one Python candidate.
 -   [/] Skip requirements whose markers evaluate false.
     -   [x] Exclude false-marker dependencies in the library compatibility helper.

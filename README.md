@@ -101,6 +101,36 @@ Pass the root directory of a Python project:
 compatpy "C:\path\to\your\project"
 ```
 
+For requirements with environment markers, provide a JSON file containing
+every standardized PEP 508 target-environment field. CompatPy does not infer
+target values from the machine running the analysis:
+
+```powershell
+compatpy "C:\path\to\your\project" --target-environment .\target.json
+```
+
+The JSON file must include `implementation_name`,
+`implementation_version`, `os_name`, `platform_machine`,
+`platform_python_implementation`, `platform_release`, `platform_system`,
+`platform_version`, `python_full_version`, `python_version`, and
+`sys_platform`. For example:
+
+```json
+{
+  "implementation_name": "cpython",
+  "implementation_version": "3.12.0",
+  "os_name": "posix",
+  "platform_machine": "x86_64",
+  "platform_python_implementation": "CPython",
+  "platform_release": "6.8.0",
+  "platform_system": "Linux",
+  "platform_version": "generic",
+  "python_full_version": "3.12.0",
+  "python_version": "3.12",
+  "sys_platform": "linux"
+}
+```
+
 When running a downloaded portable binary directly on Windows:
 
 ```powershell
