@@ -452,6 +452,35 @@ dependencies = [
     }
 
     #[test]
+    fn release_candidate_serials_order_numerically_and_reject_invalid_suffixes() {
+        use super::compare_versions;
+        use std::cmp::Ordering;
+
+        assert_eq!(compare_versions("1.0rc2", "1.0rc10"), Ordering::Less);
+        assert_eq!(compare_versions("1.0rc10", "1.0rc2"), Ordering::Greater);
+
+        for invalid in ["1.0rc.invalid", "1.0rc2junk"] {
+            assert!(
+                invalid.parse::<pep440_rs::Version>().is_err(),
+                "expected malformed RC version {invalid:?} to fail parsing"
+            );
+        }
+
+        let metadata = super::PackageMetadata {
+            name: "example".to_owned(),
+            latest_version: "1.0rc.invalid".to_owned(),
+            requires_python: None,
+            releases: vec![PackageRelease {
+                version: "1.0rc.invalid".to_owned(),
+                requires_python: None,
+            }],
+        };
+        let error = select_package_release(&metadata, None)
+            .expect_err("malformed RC suffix should be rejected");
+        assert!(error.contains("Invalid package version '1.0rc.invalid'"));
+    }
+
+    #[test]
     fn alpha_beta_aliases_and_separators_normalize_equivalently() {
         let equivalent_versions = [
             ("1.0a1", "1.0alpha1"),
