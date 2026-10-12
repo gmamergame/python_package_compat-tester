@@ -421,6 +421,20 @@ dependencies = [
     }
 
     #[test]
+    fn development_release_serials_are_parsed_by_pep440() {
+        let dev_without_serial = "1.0.dev".parse::<pep440_rs::Version>().unwrap();
+        let dev_zero = "1.0.dev0".parse::<pep440_rs::Version>().unwrap();
+        let dev_one = "1.0.dev1".parse::<pep440_rs::Version>().unwrap();
+        let dev_ten = "1.0.dev10".parse::<pep440_rs::Version>().unwrap();
+
+        assert_eq!(dev_without_serial.dev(), Some(0));
+        assert_eq!(dev_zero.dev(), Some(0));
+        assert_eq!(dev_one.dev(), Some(1));
+        assert_eq!(dev_ten.dev(), Some(10));
+        assert!("1.0.devinvalid".parse::<pep440_rs::Version>().is_err());
+    }
+
+    #[test]
     fn prefers_stable_release_over_prerelease() {
         let metadata = super::PackageMetadata {
             name: "example".to_owned(),

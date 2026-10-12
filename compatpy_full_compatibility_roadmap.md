@@ -213,8 +213,8 @@ automatically.
     -   [x] Order a final release below its post-releases and compare serials numerically.
     -   [x] Test post-releases with prerelease/dev components and normalized spellings.
     -   [x] Reject malformed post-release serials instead of defaulting them to zero.
--   [ ] Support development releases, such as `1.0.dev1`.
-    -   [ ] Parse `.devN` serials using the validated version parser.
+-   [/] Support development releases, such as `1.0.dev1`.
+    -   [x] Parse `.devN` serials using the validated version parser.
     -   [ ] Order dev-only releases against alpha, beta, release candidate, and final releases.
     -   [ ] Compare dev releases against post releases and compare serials numerically.
     -   [ ] Test dev versions with equality, inequalities, and release selection.
