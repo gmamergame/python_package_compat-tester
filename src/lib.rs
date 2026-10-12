@@ -699,6 +699,14 @@ dependencies = [
     }
 
     #[test]
+    fn comma_separated_ranges_require_every_component_to_match() {
+        assert!(package_version_satisfies("2.5.0", ">=2.0,<3.0"));
+        assert!(!package_version_satisfies("1.9.9", ">=2.0,<3.0"));
+        assert!(!package_version_satisfies("3.0.0", ">=2.0,<3.0"));
+        assert!(super::package_version_satisfies("2.5.0", ">=2.0,<<3.0").is_err());
+    }
+
+    #[test]
     fn compatible_release_operator_respects_release_prefix() {
         assert!(package_version_satisfies("1.4.5", "~=1.4.5"));
         assert!(package_version_satisfies("1.4.9", "~=1.4.5"));
