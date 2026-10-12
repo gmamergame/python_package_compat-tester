@@ -722,6 +722,31 @@ dependencies = [
     }
 
     #[test]
+    fn rejects_malformed_postrelease_serials() {
+        let release = PackageRelease {
+            version: "1.0".to_owned(),
+            requires_python: Some("<=3.8.postinvalid".to_owned()),
+        };
+        assert!(super::compatible_python_versions(&[release]).is_empty());
+
+        let metadata = super::PackageMetadata {
+            name: "example".to_owned(),
+            latest_version: "1.0.postinvalid".to_owned(),
+            requires_python: None,
+            releases: vec![PackageRelease {
+                version: "1.0.postinvalid".to_owned(),
+                requires_python: None,
+            }],
+        };
+        let error = select_package_release(&metadata, None)
+            .expect_err("malformed release serial should be rejected");
+        assert!(
+            error.contains("Invalid package version '1.0.postinvalid'"),
+            "expected error to identify malformed version, got {error:?}"
+        );
+    }
+
+    #[test]
     fn supports_basic_comparison_operators() {
         assert!(package_version_satisfies("2.0", "==2.0"));
         assert!(!package_version_satisfies("2.1", "==2.0"));

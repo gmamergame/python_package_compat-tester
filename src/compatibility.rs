@@ -11,6 +11,13 @@ pub fn select_package_release<'a>(
         .map(|specifier| parse_package_specifier(specifier).map(|parsed| (specifier, parsed)))
         .transpose()?;
 
+    for release in &metadata.releases {
+        release
+            .version
+            .parse::<pep440_rs::Version>()
+            .map_err(|error| format!("Invalid package version '{}': {error}", release.version))?;
+    }
+
     let matching = metadata.releases.iter().filter(|release| {
         validated_specifier
             .as_ref()
@@ -124,7 +131,14 @@ fn satisfies_python_specifier(version: &str, specifier: &str) -> bool {
         })
         .unwrap_or(("==", specifier.trim()));
 
-    let comparison = compare_versions(version, required);
+    let (Ok(version), Ok(required)) = (
+        version.parse::<pep440_rs::Version>(),
+        required.parse::<pep440_rs::Version>(),
+    ) else {
+        return false;
+    };
+
+    let comparison = version.cmp(&required);
 
     match operator {
         ">=" => comparison != std::cmp::Ordering::Less,
