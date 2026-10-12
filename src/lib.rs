@@ -421,6 +421,37 @@ dependencies = [
     }
 
     #[test]
+    fn release_candidate_aliases_and_omitted_serial_normalize() {
+        let equivalent_versions = [
+            ("1.0rc1", "1.0c1"),
+            ("1.0rc1", "1.0pre1"),
+            ("1.0rc1", "1.0preview1"),
+            ("1.0rc1", "1.0-Preview-1"),
+            ("1.0rc1", "1.0_PRE_1"),
+            ("1.0rc1", "1.0RC1"),
+        ];
+
+        for (canonical, alias) in equivalent_versions {
+            let parsed = alias
+                .parse::<pep440_rs::Version>()
+                .unwrap_or_else(|error| panic!("failed to parse alias {alias:?}: {error}"));
+            assert_eq!(parsed.to_string(), canonical, "alias {alias:?}");
+            assert_eq!(
+                super::compare_versions(alias, canonical),
+                std::cmp::Ordering::Equal,
+                "alias {alias:?} should normalize to {canonical:?}"
+            );
+        }
+
+        let omitted_serial = "1.0rc".parse::<pep440_rs::Version>().unwrap();
+        assert_eq!(omitted_serial.pre().unwrap().number, 0);
+        assert_eq!(
+            super::compare_versions("1.0rc", "1.0rc0"),
+            std::cmp::Ordering::Equal
+        );
+    }
+
+    #[test]
     fn alpha_beta_aliases_and_separators_normalize_equivalently() {
         let equivalent_versions = [
             ("1.0a1", "1.0alpha1"),

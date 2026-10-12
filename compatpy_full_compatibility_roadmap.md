@@ -225,7 +225,7 @@ automatically.
     -   [x] Test ordering against dev-only, later prerelease phases, final, and post releases.
 -   [/] Support release candidates, such as `1.0rc1`.
     -   [x] Parse and order common release-candidate labels in current tests.
-    -   [ ] Test accepted aliases and omitted/explicit serial behavior.
+    -   [x] Test accepted aliases and omitted/explicit serial behavior.
     -   [ ] Test numeric serial ordering and malformed suffix rejection.
     -   [ ] Test ordering against dev, final, and post releases.
 -   [ ] Support epochs, such as `1!2.0`.
