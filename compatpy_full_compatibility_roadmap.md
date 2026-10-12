@@ -201,7 +201,7 @@ automatically.
     -   [x] Test pre-release and post-release candidate comparisons against compatible bounds.
 -   [/] Audit wildcard equality `==3.12.*`.
     -   [x] Cover matching and non-matching release prefixes.
-    -   [ ] Match every release tuple beginning with the normalized prefix and exclude adjacent prefixes.
+    -   [x] Match every release tuple beginning with the normalized prefix and exclude adjacent prefixes.
     -   [ ] Define and test wildcard behavior for prerelease, postrelease, and local labels.
     -   [ ] Reject malformed wildcard placement and use with unsupported operators.
 -   [/] Audit wildcard exclusion `!=3.12.*`.

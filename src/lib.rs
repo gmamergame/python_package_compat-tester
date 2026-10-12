@@ -538,6 +538,35 @@ dependencies = [
     }
 
     #[test]
+    fn equal_version_wildcard_matches_normalized_release_prefixes() {
+        let matching_versions = [
+            "3.12",
+            "3.12.0",
+            "3.12.0.0",
+            "3.12.1",
+            "3.12.1.0.7",
+            "3.12.10",
+        ];
+        let non_matching_versions = ["3.11.99", "3.120", "3.120.0", "3.13", "4.12.0"];
+
+        for version in matching_versions {
+            assert!(
+                package_version_satisfies(version, "==3.12.*"),
+                "expected {version:?} to match ==3.12.*"
+            );
+        }
+
+        for version in non_matching_versions {
+            assert!(
+                !package_version_satisfies(version, "==3.12.*"),
+                "expected adjacent prefix {version:?} not to match ==3.12.*"
+            );
+        }
+
+        assert!(package_version_satisfies("3.012.5", "==3.012.*"));
+    }
+
+    #[test]
     fn supports_not_equal_version_wildcard() {
         assert!(package_version_satisfies("3.11.9", "!=3.12.*"));
         assert!(!package_version_satisfies("3.12.0", "!=3.12.*"));
