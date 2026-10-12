@@ -615,6 +615,34 @@ dependencies = [
     }
 
     #[test]
+    fn not_equal_version_wildcard_is_inverse_for_valid_operands() {
+        let cases = [
+            ("3.12", "3.12.*", true),
+            ("3.12.0", "3.12.*", true),
+            ("3.12.0.0", "3.12.*", true),
+            ("3.12.1.0.7", "3.12.*", true),
+            ("3.120.0", "3.12.*", false),
+            ("3.13.0", "3.12.*", false),
+            ("1!3.12.0", "3.12.*", false),
+            ("1!3.12.0", "1!3.12.*", true),
+            ("3.012.5", "3.012.*", true),
+        ];
+
+        for (version, pattern, equality_matches) in cases {
+            let equality = package_version_satisfies(version, &format!("=={pattern}"));
+            let inequality = package_version_satisfies(version, &format!("!={pattern}"));
+            assert_eq!(
+                equality, equality_matches,
+                "unexpected equality result for {version:?} =={pattern}"
+            );
+            assert_eq!(
+                inequality, !equality,
+                "!= wildcard was not the inverse for {version:?} and {pattern}"
+            );
+        }
+    }
+
+    #[test]
     fn post_releases_are_ordered_correctly() {
         use super::compare_versions;
         use std::cmp::Ordering;

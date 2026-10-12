@@ -206,7 +206,7 @@ automatically.
     -   [x] Reject malformed wildcard placement and use with unsupported operators.
 -   [/] Audit wildcard exclusion `!=3.12.*`.
     -   [x] Cover exclusion of matching and inclusion of non-matching prefixes.
-    -   [ ] Apply the exact inverse of wildcard equality for valid operands.
+    -   [x] Apply the exact inverse of wildcard equality for valid operands.
     -   [ ] Test prerelease, postrelease, local labels, and malformed wildcard placement.
 -   [/] Audit post-release ordering.
     -   [x] Cover common post-release ordering.
