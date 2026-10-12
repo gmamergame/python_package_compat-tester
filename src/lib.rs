@@ -485,6 +485,33 @@ dependencies = [
     }
 
     #[test]
+    fn alpha_beta_versions_order_across_development_final_and_post_releases() {
+        use super::compare_versions;
+        use std::cmp::Ordering;
+
+        let ordered_versions = [
+            "1.0.dev1",
+            "1.0a1",
+            "1.0a2",
+            "1.0b1",
+            "1.0b2",
+            "1.0rc1",
+            "1.0",
+            "1.0.post1",
+        ];
+
+        for pair in ordered_versions.windows(2) {
+            assert_eq!(
+                compare_versions(pair[0], pair[1]),
+                Ordering::Less,
+                "expected {:?} to sort before {:?}",
+                pair[0],
+                pair[1]
+            );
+        }
+    }
+
+    #[test]
     fn development_release_serials_are_parsed_by_pep440() {
         let dev_without_serial = "1.0.dev".parse::<pep440_rs::Version>().unwrap();
         let dev_zero = "1.0.dev0".parse::<pep440_rs::Version>().unwrap();

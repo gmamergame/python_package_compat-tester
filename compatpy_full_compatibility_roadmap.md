@@ -222,7 +222,7 @@ automatically.
     -   [x] Parse and order common alpha/beta labels in current tests.
     -   [x] Test accepted aliases and case/separator normalization.
     -   [x] Test omitted serials, numeric serial ordering, and invalid suffix rejection.
-    -   [ ] Test ordering against dev-only, later prerelease phases, final, and post releases.
+    -   [x] Test ordering against dev-only, later prerelease phases, final, and post releases.
 -   [/] Support release candidates, such as `1.0rc1`.
     -   [x] Parse and order common release-candidate labels in current tests.
     -   [ ] Test accepted aliases and omitted/explicit serial behavior.
