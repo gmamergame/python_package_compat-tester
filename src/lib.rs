@@ -791,6 +791,24 @@ dependencies = [
     }
 
     #[test]
+    fn compatible_release_rejects_invalid_operands_with_clear_errors() {
+        let invalid_specifiers = ["~=1", "~=1.*", "~=1.4.*", "~=1.4+local"];
+
+        for specifier in invalid_specifiers {
+            let error = super::package_version_satisfies("1.4.5", specifier)
+                .expect_err("invalid compatible-release operand should be rejected");
+            assert!(
+                error.contains("Invalid package version specifier"),
+                "expected a clear specifier error, got {error:?}"
+            );
+            assert!(
+                error.contains(specifier),
+                "expected the error to identify {specifier:?}, got {error:?}"
+            );
+        }
+    }
+
+    #[test]
     fn rejects_invalid_version_specifiers() {
         assert!(super::package_version_satisfies("2.0.0", "=>2.0.0").is_err());
         assert!(super::package_version_satisfies("2.0.0", "><2.0.0").is_err());
