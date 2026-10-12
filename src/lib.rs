@@ -748,6 +748,27 @@ dependencies = [
     }
 
     #[test]
+    fn compatible_release_two_segment_upper_bound_is_next_major() {
+        let cases = [
+            ("1.4", true),
+            ("1.4.0", true),
+            ("1.9.9", true),
+            ("1.99.0", true),
+            ("2.0", false),
+            ("2.0.0", false),
+            ("2.1.0", false),
+        ];
+
+        for (version, expected) in cases {
+            assert_eq!(
+                package_version_satisfies(version, "~=1.4"),
+                expected,
+                "specifier ~=1.4 with candidate {version:?}"
+            );
+        }
+    }
+
+    #[test]
     fn rejects_invalid_version_specifiers() {
         assert!(super::package_version_satisfies("2.0.0", "=>2.0.0").is_err());
         assert!(super::package_version_satisfies("2.0.0", "><2.0.0").is_err());
