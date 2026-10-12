@@ -905,6 +905,32 @@ dependencies = [
     }
 
     #[test]
+    fn rejects_malformed_and_unsupported_version_wildcards() {
+        let invalid_specifiers = [
+            "==3.*.12",
+            "==3.12.*.1",
+            "==*.12",
+            "==3.12.**",
+            "==3.12*",
+            "<3.12.*",
+            "<=3.12.*",
+            ">3.12.*",
+            ">=3.12.*",
+            "~=3.12.*",
+            "===3.12.*",
+        ];
+
+        for specifier in invalid_specifiers {
+            let error = super::package_version_satisfies("3.12.5", specifier)
+                .expect_err("malformed or unsupported wildcard should be rejected");
+            assert!(
+                error.contains(specifier),
+                "expected error to identify {specifier:?}, got {error:?}"
+            );
+        }
+    }
+
+    #[test]
     fn rejects_malformed_package_version_operands() {
         assert!(super::package_version_satisfies("2.0.0", "==2.invalid").is_err());
 

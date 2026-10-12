@@ -203,7 +203,7 @@ automatically.
     -   [x] Cover matching and non-matching release prefixes.
     -   [x] Match every release tuple beginning with the normalized prefix and exclude adjacent prefixes.
     -   [x] Define and test wildcard behavior for prerelease, postrelease, and local labels.
-    -   [ ] Reject malformed wildcard placement and use with unsupported operators.
+    -   [x] Reject malformed wildcard placement and use with unsupported operators.
 -   [/] Audit wildcard exclusion `!=3.12.*`.
     -   [x] Cover exclusion of matching and inclusion of non-matching prefixes.
     -   [ ] Apply the exact inverse of wildcard equality for valid operands.
