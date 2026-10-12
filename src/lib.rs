@@ -588,6 +588,28 @@ dependencies = [
     }
 
     #[test]
+    fn equality_and_inequality_ignore_omitted_trailing_release_zeros() {
+        let cases = [
+            ("1.2", "==1.2.0", true),
+            ("1.2.0", "==1.2", true),
+            ("1.2.0.0", "==1.2", true),
+            ("1.2", "!=1.2.0", false),
+            ("1.2.0", "!=1.2", false),
+            ("1.2.0.0", "!=1.2", false),
+            ("1.2.1", "==1.2", false),
+            ("1.2.1", "!=1.2", true),
+        ];
+
+        for (version, specifier, expected) in cases {
+            assert_eq!(
+                package_version_satisfies(version, specifier),
+                expected,
+                "specifier {specifier:?} with candidate {version:?}"
+            );
+        }
+    }
+
+    #[test]
     fn exact_and_ordered_specifiers_use_pep440_versions() {
         assert!(package_version_satisfies("1!1.0", ">2.0"));
         assert!(package_version_satisfies("1.0.post2", ">1.0.post1"));
