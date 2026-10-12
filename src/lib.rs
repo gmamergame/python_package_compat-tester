@@ -643,6 +643,42 @@ dependencies = [
     }
 
     #[test]
+    fn not_equal_version_wildcard_excludes_labels_and_rejects_malformed_patterns() {
+        let cases = [
+            ("3.12.0.dev1", false),
+            ("3.12.0a1", false),
+            ("3.12.0b1", false),
+            ("3.12.0rc1", false),
+            ("3.12.0.post1", false),
+            ("3.12.1+vendor.1", false),
+            ("3.12.1rc1+vendor.1", false),
+            ("3.11.99.post1", true),
+            ("3.120.0a1", true),
+            ("3.13.0.post1", true),
+            ("3.13.0+vendor.1", true),
+        ];
+
+        for (version, expected) in cases {
+            assert_eq!(
+                package_version_satisfies(version, "!=3.12.*"),
+                expected,
+                "specifier !=3.12.* with candidate {version:?}"
+            );
+        }
+
+        let malformed_specifiers = ["!=3.*.12", "!=3.12.*.1", "!=*.12", "!=3.12.**", "!=3.12*"];
+
+        for specifier in malformed_specifiers {
+            let error = super::package_version_satisfies("3.12.5", specifier)
+                .expect_err("malformed exclusion wildcard should be rejected");
+            assert!(
+                error.contains(specifier),
+                "expected error to identify {specifier:?}, got {error:?}"
+            );
+        }
+    }
+
+    #[test]
     fn post_releases_are_ordered_correctly() {
         use super::compare_versions;
         use std::cmp::Ordering;
