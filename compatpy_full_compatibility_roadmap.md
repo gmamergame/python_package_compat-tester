@@ -210,7 +210,7 @@ automatically.
     -   [x] Test prerelease, postrelease, local labels, and malformed wildcard placement.
 -   [/] Audit post-release ordering.
     -   [x] Cover common post-release ordering.
-    -   [ ] Order a final release below its post-releases and compare serials numerically.
+    -   [x] Order a final release below its post-releases and compare serials numerically.
     -   [ ] Test post-releases with prerelease/dev components and normalized spellings.
     -   [ ] Reject malformed post-release serials instead of defaulting them to zero.
 -   [ ] Support development releases, such as `1.0.dev1`.

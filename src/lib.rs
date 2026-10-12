@@ -684,7 +684,13 @@ dependencies = [
         use std::cmp::Ordering;
 
         assert_eq!(compare_versions("1.0", "1.0.post1"), Ordering::Less);
+        assert_eq!(compare_versions("1.0", "1.0.post0"), Ordering::Less);
         assert_eq!(compare_versions("1.0.post1", "1.0.post2"), Ordering::Less);
+        assert_eq!(compare_versions("1.0.post2", "1.0.post10"), Ordering::Less);
+        assert_eq!(
+            compare_versions("1.0.post10", "1.0.post2"),
+            Ordering::Greater
+        );
         assert_eq!(
             compare_versions("1.0.post2", "1.0.post1"),
             Ordering::Greater
