@@ -421,6 +421,32 @@ dependencies = [
     }
 
     #[test]
+    fn alpha_beta_aliases_and_separators_normalize_equivalently() {
+        let equivalent_versions = [
+            ("1.0a1", "1.0alpha1"),
+            ("1.0a1", "1.0-alpha-1"),
+            ("1.0a1", "1.0_ALPHA_1"),
+            ("1.0a1", "1.0ALPHA1"),
+            ("1.0b2", "1.0beta2"),
+            ("1.0b2", "1.0-beta-2"),
+            ("1.0b2", "1.0_BETA_2"),
+            ("1.0b2", "1.0BETA2"),
+        ];
+
+        for (canonical, alias) in equivalent_versions {
+            let parsed = alias
+                .parse::<pep440_rs::Version>()
+                .unwrap_or_else(|error| panic!("failed to parse alias {alias:?}: {error}"));
+            assert_eq!(parsed.to_string(), canonical, "alias {alias:?}");
+            assert_eq!(
+                super::compare_versions(alias, canonical),
+                std::cmp::Ordering::Equal,
+                "alias {alias:?} should normalize to {canonical:?}"
+            );
+        }
+    }
+
+    #[test]
     fn development_release_serials_are_parsed_by_pep440() {
         let dev_without_serial = "1.0.dev".parse::<pep440_rs::Version>().unwrap();
         let dev_zero = "1.0.dev0".parse::<pep440_rs::Version>().unwrap();
