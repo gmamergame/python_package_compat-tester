@@ -198,7 +198,7 @@ automatically.
     -   [x] Implement and test the upper bound for `~=1.4` (next major release).
     -   [x] Implement and test the upper bound for `~=1.4.5` (next compatible minor release).
     -   [x] Reject invalid one-component operands and non-release components with a clear error.
-    -   [ ] Test pre-release and post-release candidate comparisons against compatible bounds.
+    -   [x] Test pre-release and post-release candidate comparisons against compatible bounds.
 -   [/] Audit wildcard equality `==3.12.*`.
     -   [x] Cover matching and non-matching release prefixes.
     -   [ ] Match every release tuple beginning with the normalized prefix and exclude adjacent prefixes.

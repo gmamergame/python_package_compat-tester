@@ -809,6 +809,29 @@ dependencies = [
     }
 
     #[test]
+    fn compatible_release_compares_pre_and_post_release_candidates() {
+        let cases = [
+            ("1.4.5.dev1", false),
+            ("1.4.5a1", false),
+            ("1.4.5rc1", false),
+            ("1.4.5", true),
+            ("1.4.5.post1", true),
+            ("1.4.6a1", true),
+            ("1.4.6.post1", true),
+            ("1.5.0a1", false),
+            ("1.5.0.post1", false),
+        ];
+
+        for (version, expected) in cases {
+            assert_eq!(
+                package_version_satisfies(version, "~=1.4.5"),
+                expected,
+                "specifier ~=1.4.5 with candidate {version:?}"
+            );
+        }
+    }
+
+    #[test]
     fn rejects_invalid_version_specifiers() {
         assert!(super::package_version_satisfies("2.0.0", "=>2.0.0").is_err());
         assert!(super::package_version_satisfies("2.0.0", "><2.0.0").is_err());
