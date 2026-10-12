@@ -143,7 +143,7 @@ pub fn discover_dependencies(project_path: &Path) -> Result<Vec<Dependency>, Str
                 "discover_dependencies: parsing '{}' as requirements",
                 path.display()
             );
-            discover_from_requirements(&contents, &path, &mut dependencies);
+            discover_from_requirements(&contents, &path, &mut dependencies)?;
         }
     }
 
@@ -277,16 +277,25 @@ fn parse_editable_requirement(line: &str) -> Option<String> {
         .map(str::to_owned)
 }
 
-fn discover_from_requirements(contents: &str, source: &Path, dependencies: &mut Vec<Dependency>) {
+fn discover_from_requirements(
+    contents: &str,
+    source: &Path,
+    dependencies: &mut Vec<Dependency>,
+) -> Result<(), String> {
     let mut logical_line = String::new();
+    let mut logical_line_number = None;
 
-    for physical_line in contents.lines() {
+    for (line_index, physical_line) in contents.lines().enumerate() {
         let line = physical_line.trim();
 
         // Skip blank lines and comments when not inside a continuation.
         if logical_line.is_empty() && (line.is_empty() || line.starts_with('#')) {
             test_debug!("requirements: skipping line {line:?}");
             continue;
+        }
+
+        if logical_line.is_empty() {
+            logical_line_number = Some(line_index + 1);
         }
 
         // A trailing backslash continues the requirement on the next line.
@@ -313,7 +322,7 @@ fn discover_from_requirements(contents: &str, source: &Path, dependencies: &mut 
             test_debug!("requirements: parsing editable requirement {editable:?}");
 
             if let Some(normalized) = normalize_editable_requirement(&editable) {
-                add_requirement(&normalized, source, dependencies);
+                add_requirement(&normalized, source, logical_line_number, dependencies)?;
             } else {
                 test_debug!(
                     "requirements: skipping editable requirement without a valid egg fragment"
@@ -321,12 +330,13 @@ fn discover_from_requirements(contents: &str, source: &Path, dependencies: &mut 
             }
         } else if !requirement.starts_with('-') {
             test_debug!("requirements: parsing logical line {requirement:?}");
-            add_requirement(requirement, source, dependencies);
+            add_requirement(requirement, source, logical_line_number, dependencies)?;
         } else {
             test_debug!("requirements: skipping unsupported option {requirement:?}");
         }
 
         logical_line.clear();
+        logical_line_number = None;
     }
 
     // Process any remaining content, even if the file ends with a backslash.
@@ -335,12 +345,14 @@ fn discover_from_requirements(contents: &str, source: &Path, dependencies: &mut 
 
         if !requirement.is_empty() {
             if let Some(editable) = parse_editable_requirement(requirement) {
-                add_requirement(&editable, source, dependencies);
+                add_requirement(&editable, source, logical_line_number, dependencies)?;
             } else if !requirement.starts_with('-') {
-                add_requirement(requirement, source, dependencies);
+                add_requirement(requirement, source, logical_line_number, dependencies)?;
             }
         }
     }
+
+    Ok(())
 }
 
 fn discover_from_pyproject(
@@ -363,7 +375,7 @@ fn discover_from_pyproject(
         );
         for dependency in array.iter().filter_map(toml::Value::as_str) {
             test_debug!("pyproject: parsing dependency {dependency:?}");
-            add_requirement(dependency, source, dependencies);
+            add_requirement(dependency, source, None, dependencies)?;
         }
     } else {
         test_debug!("pyproject: no project.dependencies array found");
@@ -398,7 +410,13 @@ fn is_supported_direct_url(url: &str) -> bool {
     .any(|prefix| url.starts_with(prefix))
 }
 
-fn add_requirement(requirement: &str, source: &Path, dependencies: &mut Vec<Dependency>) {
+fn add_requirement(
+    requirement: &str,
+    source: &Path,
+    line_number: Option<usize>,
+    dependencies: &mut Vec<Dependency>,
+) -> Result<(), String> {
+    let original_requirement = requirement;
     test_debug!(
         "add_requirement: input {requirement:?} from '{}'",
         source.display()
@@ -417,9 +435,13 @@ fn add_requirement(requirement: &str, source: &Path, dependencies: &mut Vec<Depe
         let marker_result =
             Requirement::<pep508_rs::VerbatimUrl>::parse(&marker_requirement, working_dir);
 
-        if marker_result.is_err() {
-            test_debug!("add_requirement: ignoring invalid environment marker");
-            return;
+        if let Err(error) = marker_result {
+            let location = line_number
+                .map(|line| format!("{}:{line}", source.display()))
+                .unwrap_or_else(|| source.display().to_string());
+            return Err(format!(
+                "{location}: invalid environment marker in requirement {original_requirement:?}: {error}"
+            ));
         }
     }
 
@@ -431,7 +453,7 @@ fn add_requirement(requirement: &str, source: &Path, dependencies: &mut Vec<Depe
 
             if !is_supported_direct_url(url) {
                 test_debug!("add_requirement: ignoring unsupported or invalid direct URL");
-                return;
+                return Ok(());
             }
 
             (name.trim(), Some(url.to_owned()))
@@ -443,7 +465,7 @@ fn add_requirement(requirement: &str, source: &Path, dependencies: &mut Vec<Depe
     let (name, extras, specifier) = if let Some(start) = name_and_extras.find('[') {
         let Some(end) = name_and_extras.find(']') else {
             test_debug!("add_requirement: ignoring extras without closing bracket");
-            return;
+            return Ok(());
         };
 
         let name = name_and_extras[..start].trim();
@@ -452,7 +474,7 @@ fn add_requirement(requirement: &str, source: &Path, dependencies: &mut Vec<Depe
 
         if extras_text.trim().is_empty() {
             test_debug!("add_requirement: ignoring empty extras");
-            return;
+            return Ok(());
         }
 
         let extras: Vec<String> = extras_text
@@ -468,7 +490,7 @@ fn add_requirement(requirement: &str, source: &Path, dependencies: &mut Vec<Depe
                     .all(|character| character.is_ascii_alphanumeric() || "._-".contains(character))
         }) {
             test_debug!("add_requirement: ignoring invalid extras");
-            return;
+            return Ok(());
         }
 
         if !remainder.is_empty()
@@ -477,7 +499,7 @@ fn add_requirement(requirement: &str, source: &Path, dependencies: &mut Vec<Depe
                 .any(|operator| remainder.starts_with(operator))
         {
             test_debug!("add_requirement: ignoring invalid text after extras");
-            return;
+            return Ok(());
         }
 
         let specifier = if url.is_none() {
@@ -485,7 +507,7 @@ fn add_requirement(requirement: &str, source: &Path, dependencies: &mut Vec<Depe
         } else {
             if !remainder.is_empty() {
                 test_debug!("add_requirement: ignoring specifier after direct URL");
-                return;
+                return Ok(());
             }
             None
         };
@@ -505,7 +527,7 @@ fn add_requirement(requirement: &str, source: &Path, dependencies: &mut Vec<Depe
                 .any(|operator| remainder.starts_with(operator))
         {
             test_debug!("add_requirement: ignoring invalid specifier");
-            return;
+            return Ok(());
         }
 
         let specifier = if url.is_none() {
@@ -513,7 +535,7 @@ fn add_requirement(requirement: &str, source: &Path, dependencies: &mut Vec<Depe
         } else {
             if !remainder.is_empty() {
                 test_debug!("add_requirement: ignoring specifier after direct URL");
-                return;
+                return Ok(());
             }
             None
         };
@@ -527,7 +549,7 @@ fn add_requirement(requirement: &str, source: &Path, dependencies: &mut Vec<Depe
             .all(|character| character.is_ascii_alphanumeric() || "._-".contains(character))
     {
         test_debug!("add_requirement: ignoring invalid package name");
-        return;
+        return Ok(());
     }
 
     let dependency = Dependency {
@@ -544,4 +566,5 @@ fn add_requirement(requirement: &str, source: &Path, dependencies: &mut Vec<Depe
     if !dependencies.contains(&dependency) {
         dependencies.push(dependency);
     }
+    Ok(())
 }

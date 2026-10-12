@@ -1552,7 +1552,7 @@ dependencies = [
     }
 
     #[test]
-    fn skips_requirements_with_invalid_environment_markers() {
+    fn reports_invalid_requirements_environment_markers_with_source_location() {
         let project = temporary_project();
 
         fs::write(
@@ -1561,10 +1561,10 @@ dependencies = [
         )
         .unwrap();
 
-        let dependencies = discover_dependencies(&project).unwrap();
+        let error = discover_dependencies(&project).unwrap_err();
 
-        assert_eq!(dependencies.len(), 1);
-        assert_eq!(dependencies[0].name, "flask");
+        assert!(error.contains("requirements.txt:1"));
+        assert!(error.contains("python_version >>>"));
 
         fs::remove_dir_all(project).unwrap();
     }
