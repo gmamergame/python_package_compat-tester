@@ -707,6 +707,37 @@ dependencies = [
     }
 
     #[test]
+    fn package_specifiers_match_pep440_reference_examples() {
+        let cases = [
+            ("1.1", "==1.1", true),
+            ("1.1", "==1.1.0", true),
+            ("1.1", "==1.1.dev1", false),
+            ("1.1", "==1.1a1", false),
+            ("1.1", "==1.1.post1", false),
+            ("1.1", "==1.1.*", true),
+            ("1.1.post1", "==1.1", false),
+            ("1.1.post1", "==1.1.post1", true),
+            ("1.1.post1", "==1.1.*", true),
+            ("1.1.post1", "!=1.1", true),
+            ("1.1.post1", "!=1.1.post1", false),
+            ("1.1.post1", "!=1.1.*", false),
+            ("1.7.1", ">1.7", true),
+            ("1.7.0.post1", ">1.7", false),
+            ("1.7.1", ">1.7.post2", true),
+            ("1.7.0.post3", ">1.7.post2", true),
+            ("1.7.0", ">1.7.post2", false),
+        ];
+
+        for (version, specifier, expected) in cases {
+            assert_eq!(
+                package_version_satisfies(version, specifier),
+                expected,
+                "PEP 440 case {specifier:?} with candidate {version:?}"
+            );
+        }
+    }
+
+    #[test]
     fn compatible_release_operator_respects_release_prefix() {
         assert!(package_version_satisfies("1.4.5", "~=1.4.5"));
         assert!(package_version_satisfies("1.4.9", "~=1.4.5"));

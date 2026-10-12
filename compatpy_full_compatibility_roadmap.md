@@ -192,7 +192,7 @@ automatically.
     -   [x] Compare equality and inequality for release tuples with omitted trailing zeros.
     -   [x] Test immediately-below, equal-to, and immediately-above boundaries for ordered operators.
     -   [x] Test comma-separated ranges where all components match, one fails, or one is malformed.
-    -   [ ] Compare expected outcomes against PEP 440 reference cases.
+    -   [x] Compare expected outcomes against PEP 440 reference cases.
 -   [/] Audit compatible-release operator `~=`.
     -   [x] Cover common compatible-release bounds in unit tests.
     -   [ ] Implement and test the upper bound for `~=1.4` (next major release).
