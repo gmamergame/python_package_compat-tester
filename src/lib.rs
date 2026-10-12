@@ -610,6 +610,27 @@ dependencies = [
     }
 
     #[test]
+    fn ordered_specifiers_cover_below_equal_and_above_boundaries() {
+        let cases = [
+            ("<2.0.0", [true, false, false]),
+            ("<=2.0.0", [true, true, false]),
+            (">2.0.0", [false, false, true]),
+            (">=2.0.0", [false, true, true]),
+        ];
+        let candidates = ["1.9.9", "2.0.0", "2.0.1"];
+
+        for (specifier, expected_results) in cases {
+            for (candidate, expected) in candidates.into_iter().zip(expected_results) {
+                assert_eq!(
+                    package_version_satisfies(candidate, specifier),
+                    expected,
+                    "specifier {specifier:?} with candidate {candidate:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
     fn exact_and_ordered_specifiers_use_pep440_versions() {
         assert!(package_version_satisfies("1!1.0", ">2.0"));
         assert!(package_version_satisfies("1.0.post2", ">1.0.post1"));

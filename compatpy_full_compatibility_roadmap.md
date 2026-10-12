@@ -190,7 +190,7 @@ automatically.
 -   [/] Audit exact versions, inequalities, and comma-separated specifiers.
     -   [x] Cover common comparisons and combined constraints with unit tests.
     -   [x] Compare equality and inequality for release tuples with omitted trailing zeros.
-    -   [ ] Test immediately-below, equal-to, and immediately-above boundaries for ordered operators.
+    -   [x] Test immediately-below, equal-to, and immediately-above boundaries for ordered operators.
     -   [ ] Test comma-separated ranges where all components match, one fails, or one is malformed.
     -   [ ] Compare expected outcomes against PEP 440 reference cases.
 -   [/] Audit compatible-release operator `~=`.
