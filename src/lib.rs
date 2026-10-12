@@ -435,6 +435,26 @@ dependencies = [
     }
 
     #[test]
+    fn development_releases_order_before_alpha_beta_rc_and_final() {
+        use super::compare_versions;
+        use std::cmp::Ordering;
+
+        let ordered_versions = ["1.0.dev1", "1.0.dev2", "1.0a1", "1.0b1", "1.0rc1", "1.0"];
+
+        for pair in ordered_versions.windows(2) {
+            assert_eq!(
+                compare_versions(pair[0], pair[1]),
+                Ordering::Less,
+                "expected {:?} to sort before {:?}",
+                pair[0],
+                pair[1]
+            );
+        }
+
+        assert_eq!(compare_versions("1.0.dev10", "1.0.dev2"), Ordering::Greater);
+    }
+
+    #[test]
     fn prefers_stable_release_over_prerelease() {
         let metadata = super::PackageMetadata {
             name: "example".to_owned(),
