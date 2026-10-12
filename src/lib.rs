@@ -567,6 +567,39 @@ dependencies = [
     }
 
     #[test]
+    fn equal_version_wildcard_matches_release_labels_by_public_prefix() {
+        let matching_versions = [
+            "3.12.0.dev1",
+            "3.12.0a1",
+            "3.12.0b1",
+            "3.12.0rc1",
+            "3.12.0.post1",
+            "3.12.1+vendor.1",
+            "3.12.1rc1+vendor.1",
+        ];
+        let non_matching_versions = [
+            "3.11.99.post1",
+            "3.120.0a1",
+            "3.13.0.post1",
+            "3.13.0+vendor.1",
+        ];
+
+        for version in matching_versions {
+            assert!(
+                package_version_satisfies(version, "==3.12.*"),
+                "expected labeled version {version:?} to match ==3.12.*"
+            );
+        }
+
+        for version in non_matching_versions {
+            assert!(
+                !package_version_satisfies(version, "==3.12.*"),
+                "expected labeled version {version:?} not to match ==3.12.*"
+            );
+        }
+    }
+
+    #[test]
     fn supports_not_equal_version_wildcard() {
         assert!(package_version_satisfies("3.11.9", "!=3.12.*"));
         assert!(!package_version_satisfies("3.12.0", "!=3.12.*"));
