@@ -221,7 +221,7 @@ automatically.
 -   [/] Support alpha and beta releases, such as `1.0a1` and `1.0b2`.
     -   [x] Parse and order common alpha/beta labels in current tests.
     -   [x] Test accepted aliases and case/separator normalization.
-    -   [ ] Test omitted serials, numeric serial ordering, and invalid suffix rejection.
+    -   [x] Test omitted serials, numeric serial ordering, and invalid suffix rejection.
     -   [ ] Test ordering against dev-only, later prerelease phases, final, and post releases.
 -   [/] Support release candidates, such as `1.0rc1`.
     -   [x] Parse and order common release-candidate labels in current tests.

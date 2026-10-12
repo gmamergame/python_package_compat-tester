@@ -447,6 +447,44 @@ dependencies = [
     }
 
     #[test]
+    fn alpha_beta_serials_default_to_zero_and_reject_invalid_suffixes() {
+        use super::compare_versions;
+        use std::cmp::Ordering;
+
+        for (without_serial, explicit_zero) in [("1.0a", "1.0a0"), ("1.0b", "1.0b0")] {
+            let parsed = without_serial.parse::<pep440_rs::Version>().unwrap();
+            assert_eq!(parsed.pre().unwrap().number, 0);
+            assert_eq!(
+                compare_versions(without_serial, explicit_zero),
+                Ordering::Equal
+            );
+        }
+
+        assert_eq!(compare_versions("1.0a2", "1.0a10"), Ordering::Less);
+        assert_eq!(compare_versions("1.0b2", "1.0b10"), Ordering::Less);
+
+        for invalid in ["1.0a.invalid", "1.0b2junk"] {
+            assert!(
+                invalid.parse::<pep440_rs::Version>().is_err(),
+                "expected invalid prerelease suffix {invalid:?} to fail parsing"
+            );
+        }
+
+        let metadata = super::PackageMetadata {
+            name: "example".to_owned(),
+            latest_version: "1.0a.invalid".to_owned(),
+            requires_python: None,
+            releases: vec![PackageRelease {
+                version: "1.0a.invalid".to_owned(),
+                requires_python: None,
+            }],
+        };
+        let error = select_package_release(&metadata, None)
+            .expect_err("malformed alpha suffix should be rejected");
+        assert!(error.contains("Invalid package version '1.0a.invalid'"));
+    }
+
+    #[test]
     fn development_release_serials_are_parsed_by_pep440() {
         let dev_without_serial = "1.0.dev".parse::<pep440_rs::Version>().unwrap();
         let dev_zero = "1.0.dev0".parse::<pep440_rs::Version>().unwrap();
