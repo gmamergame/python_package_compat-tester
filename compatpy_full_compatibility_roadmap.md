@@ -196,7 +196,7 @@ automatically.
 -   [/] Audit compatible-release operator `~=`.
     -   [x] Cover common compatible-release bounds in unit tests.
     -   [x] Implement and test the upper bound for `~=1.4` (next major release).
-    -   [ ] Implement and test the upper bound for `~=1.4.5` (next compatible minor release).
+    -   [x] Implement and test the upper bound for `~=1.4.5` (next compatible minor release).
     -   [ ] Reject invalid one-component operands and non-release components with a clear error.
     -   [ ] Test pre-release and post-release candidate comparisons against compatible bounds.
 -   [/] Audit wildcard equality `==3.12.*`.
