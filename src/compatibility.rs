@@ -138,98 +138,18 @@ fn satisfies_python_specifier(version: &str, specifier: &str) -> bool {
 }
 
 pub(crate) fn is_prerelease(version: &str) -> bool {
-    let parsed = parse_package_version(version);
-    parsed.prerelease.is_some()
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct ParsedPackageVersion {
-    release: Vec<u64>,
-    prerelease: Option<Prerelease>,
-    postrelease: Option<u64>,
-}
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-enum Prerelease {
-    Alpha(u64),
-    Beta(u64),
-    Rc(u64),
+    version
+        .parse::<pep440_rs::Version>()
+        .is_ok_and(|parsed| parsed.any_prerelease())
 }
 
 pub(crate) fn compare_versions(left: &str, right: &str) -> std::cmp::Ordering {
-    let left_version = parse_package_version(left);
-    let right_version = parse_package_version(right);
-
-    match left_version.release.cmp(&right_version.release) {
-        std::cmp::Ordering::Equal => {
-            match (&left_version.prerelease, &right_version.prerelease) {
-                (None, None) => {}
-                (None, Some(_)) => return std::cmp::Ordering::Greater,
-                (Some(_), None) => return std::cmp::Ordering::Less,
-                (Some(left), Some(right)) => {
-                    let ordering = left.cmp(right);
-
-                    if ordering != std::cmp::Ordering::Equal {
-                        return ordering;
-                    }
-                }
-            }
-
-            left_version.postrelease.cmp(&right_version.postrelease)
-        }
-        ordering => ordering,
-    }
-}
-
-fn parse_package_version(version: &str) -> ParsedPackageVersion {
-    let version = version.trim().to_ascii_lowercase();
-
-    let (base_version, postrelease) = if let Some(index) = version.find(".post") {
-        let post_number = version[index + 5..].parse::<u64>().unwrap_or(0);
-
-        (&version[..index], Some(post_number))
-    } else {
-        (version.as_str(), None)
-    };
-
-    let (release_part, prerelease) = if let Some(index) = base_version.find("rc") {
-        (
-            &base_version[..index],
-            Some(Prerelease::Rc(
-                base_version[index + 2..].parse::<u64>().unwrap_or(0),
-            )),
-        )
-    } else if let Some(index) = base_version.find('a') {
-        (
-            &base_version[..index],
-            Some(Prerelease::Alpha(
-                base_version[index + 1..].parse::<u64>().unwrap_or(0),
-            )),
-        )
-    } else if let Some(index) = base_version.find('b') {
-        (
-            &base_version[..index],
-            Some(Prerelease::Beta(
-                base_version[index + 1..].parse::<u64>().unwrap_or(0),
-            )),
-        )
-    } else {
-        (base_version, None)
-    };
-
-    let mut release = release_part
-        .split('.')
-        .map(|part| part.parse::<u64>().unwrap_or(0))
-        .collect::<Vec<_>>();
-
-    while release.len() < 3 {
-        release.push(0);
-    }
-
-    ParsedPackageVersion {
-        release,
-        prerelease,
-        postrelease,
+    match (
+        left.parse::<pep440_rs::Version>(),
+        right.parse::<pep440_rs::Version>(),
+    ) {
+        (Ok(left), Ok(right)) => left.cmp(&right),
+        _ => left.cmp(right),
     }
 }
 

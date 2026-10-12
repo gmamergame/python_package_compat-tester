@@ -699,6 +699,29 @@ dependencies = [
     }
 
     #[test]
+    fn post_releases_order_with_pre_dev_and_normalized_spellings() {
+        use super::compare_versions;
+        use std::cmp::Ordering;
+
+        assert_eq!(compare_versions("1.0a1.post1", "1.0a1"), Ordering::Greater);
+        assert_eq!(
+            compare_versions("1.0a1.post1", "1.0a1.post2"),
+            Ordering::Less
+        );
+        assert_eq!(
+            compare_versions("1.0.post1.dev1", "1.0.post1.dev2"),
+            Ordering::Less
+        );
+        assert_eq!(
+            compare_versions("1.0.post1.dev2", "1.0.post1"),
+            Ordering::Less
+        );
+        assert_eq!(compare_versions("1.0-r1", "1.0.post1"), Ordering::Equal);
+        assert_eq!(compare_versions("1.0_rev2", "1.0.post2"), Ordering::Equal);
+        assert_eq!(compare_versions("1.0-3", "1.0.post3"), Ordering::Equal);
+    }
+
+    #[test]
     fn supports_basic_comparison_operators() {
         assert!(package_version_satisfies("2.0", "==2.0"));
         assert!(!package_version_satisfies("2.1", "==2.0"));
