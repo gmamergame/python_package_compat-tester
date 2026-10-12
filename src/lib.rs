@@ -481,6 +481,24 @@ dependencies = [
     }
 
     #[test]
+    fn release_candidates_order_after_dev_and_before_final_and_post() {
+        use super::compare_versions;
+        use std::cmp::Ordering;
+
+        let ordered_versions = ["1.0.dev10", "1.0rc1", "1.0rc10", "1.0", "1.0.post1"];
+
+        for pair in ordered_versions.windows(2) {
+            assert_eq!(
+                compare_versions(pair[0], pair[1]),
+                Ordering::Less,
+                "expected {:?} to sort before {:?}",
+                pair[0],
+                pair[1]
+            );
+        }
+    }
+
+    #[test]
     fn alpha_beta_aliases_and_separators_normalize_equivalently() {
         let equivalent_versions = [
             ("1.0a1", "1.0alpha1"),
