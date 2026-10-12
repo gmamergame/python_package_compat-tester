@@ -491,6 +491,40 @@ dependencies = [
     }
 
     #[test]
+    fn development_versions_match_specifiers_and_select_latest_release() {
+        assert!(package_version_satisfies("1.0.dev1", "==1.0.dev1"));
+        assert!(!package_version_satisfies("1.0.dev2", "==1.0.dev1"));
+        assert!(package_version_satisfies("1.0.dev2", ">1.0.dev1"));
+        assert!(!package_version_satisfies("1.0.dev1", ">=1.0.dev2"));
+        assert!(package_version_satisfies("1.0.dev10", "<=1.0.dev10"));
+
+        let metadata = super::PackageMetadata {
+            name: "example".to_owned(),
+            latest_version: "1.0".to_owned(),
+            requires_python: None,
+            releases: vec![
+                PackageRelease {
+                    version: "1.0.dev2".to_owned(),
+                    requires_python: None,
+                },
+                PackageRelease {
+                    version: "1.0.dev10".to_owned(),
+                    requires_python: None,
+                },
+                PackageRelease {
+                    version: "1.0.dev1".to_owned(),
+                    requires_python: None,
+                },
+            ],
+        };
+
+        let selected = select_package_release(&metadata, Some(">=1.0.dev2,<=1.0.dev10"))
+            .unwrap()
+            .expect("matching development release should be selected");
+        assert_eq!(selected.version, "1.0.dev10");
+    }
+
+    #[test]
     fn prefers_stable_release_over_prerelease() {
         let metadata = super::PackageMetadata {
             name: "example".to_owned(),

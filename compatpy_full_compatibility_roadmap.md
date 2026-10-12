@@ -217,7 +217,7 @@ automatically.
     -   [x] Parse `.devN` serials using the validated version parser.
     -   [x] Order dev-only releases against alpha, beta, release candidate, and final releases.
     -   [x] Compare dev releases against post releases and compare serials numerically.
-    -   [ ] Test dev versions with equality, inequalities, and release selection.
+    -   [x] Test dev versions with equality, inequalities, and release selection.
 -   [/] Support alpha and beta releases, such as `1.0a1` and `1.0b2`.
     -   [x] Parse and order common alpha/beta labels in current tests.
     -   [ ] Test accepted aliases and case/separator normalization.
