@@ -55,9 +55,9 @@ pub fn parse_requirement(input: &str) -> Result<ParsedRequirement, String> {
 
             let host = url.split("://").nth(1).unwrap_or("");
             // Reject unsupported URL schemes.
-            if !(is_supported_url || is_supported_vcs_url) {
-                return Err("Invalid direct URL".to_string());
-            } else if host.is_empty() || host.starts_with("/") {
+            if !(is_supported_url || is_supported_vcs_url)
+                || (host.is_empty() || host.starts_with("/"))
+            {
                 return Err("Invalid direct URL".to_string());
             }
 
