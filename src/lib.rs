@@ -1,12 +1,17 @@
+// CompatPy crate tests and public re-exports. The comments below explain intent;
+// executable code and test expectations are otherwise left unchanged.
+// Define a debug-printing macro that only produces output during tests.
 macro_rules! test_debug {
     ($($argument:tt)*) => {{
         #[cfg(test)]
         {
+            // Format and print the message with a recognizable prefix.
             eprintln!("[compat-debug] {}", format_args!($($argument)*));
         }
     }};
 }
 
+// Declare the internal modules that organize the application.
 mod cli;
 mod compatibility;
 mod dependencies;
@@ -14,6 +19,8 @@ mod package_name;
 mod pypi;
 mod requirements;
 
+// Re-export public types and functions so callers can access them
+// directly through this crate.
 pub use cli::{Command, VERSION, parse_args};
 pub use compatibility::{
     compatible_python_versions, compatible_python_versions_for_environment, select_package_release,
@@ -22,7 +29,7 @@ pub use dependencies::{Dependency, dependency_applies_to_environment, discover_d
 pub use pypi::{PackageMetadata, PackageRelease, fetch_pypi_metadata};
 pub use requirements::{ParsedRequirement, parse_requirement};
 
-// Keep internal helpers available to this module's existing unit tests.
+// Import internal helpers for use by this module's unit tests only.
 #[cfg(test)]
 use compatibility::{compare_versions, package_version_satisfies};
 #[cfg(test)]
@@ -32,6 +39,7 @@ use package_name::normalize_package_name;
 #[cfg(test)]
 use pypi::parse_pypi_metadata;
 
+// Define the unit tests for this crate.
 #[cfg(test)]
 mod tests {
 
@@ -43,20 +51,25 @@ mod tests {
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    // Check whether a version satisfies a requirement, treating invalid test input as a test error.
     fn package_version_satisfies(version: &str, requirement: &str) -> bool {
         super::package_version_satisfies(version, requirement)
             .expect("test specifier should be valid")
     }
 
+    // Construct a realistic PEP 508 marker environment for a chosen Python version and platform.
     fn test_marker_environment(
         python_version: &str,
         sys_platform: &str,
     ) -> pep508_rs::MarkerEnvironment {
+        // Construct the full Python version, e.g. "3.12" becomes "3.12.0".
         let python_full_version = format!("{python_version}.0");
 
+        // Populate the environment fields used by PEP 508 marker evaluation.
         pep508_rs::MarkerEnvironment::try_from(pep508_rs::MarkerEnvironmentBuilder {
             implementation_name: "cpython",
             implementation_version: "3.12.0",
+            // Windows uses "nt"; other platforms use "posix".
             os_name: if sys_platform == "win32" {
                 "nt"
             } else {
@@ -65,6 +78,7 @@ mod tests {
             platform_machine: "x86_64",
             platform_python_implementation: "CPython",
             platform_release: "",
+            // Map the requested platform to its operating-system name.
             platform_system: if sys_platform == "win32" {
                 "Windows"
             } else {
@@ -75,23 +89,32 @@ mod tests {
             python_version,
             sys_platform,
         })
+        // Fail the test immediately if the environment is invalid.
         .unwrap()
     }
+
+    // Verify that running without arguments selects the help command.
 
     #[test]
     fn help_is_the_default_command() {
         assert_eq!(parse_args(&[]), Ok(Command::Help));
     }
 
+    // Verify that the version flag selects the version command.
+
     #[test]
     fn parses_version_flag() {
         assert_eq!(parse_args(&["--version".to_owned()]), Ok(Command::Version));
     }
 
+    // Verify that unsupported command-line arguments are rejected.
+
     #[test]
     fn rejects_unexpected_arguments() {
         assert!(parse_args(&["unknown".to_owned()]).is_err());
     }
+
+    // Verify that package names are normalized consistently.
 
     #[test]
     fn normalizes_package_names() {
@@ -105,6 +128,8 @@ mod tests {
         );
         assert_eq!(normalize_package_name("my.-_package"), "my-package");
     }
+
+    // Verify parsing requirement with canonical name without changing other fields.
 
     #[test]
     fn parses_requirement_with_canonical_name_without_changing_other_fields() {
@@ -128,6 +153,8 @@ mod tests {
             Some("https://example.com/pkg.whl#subdirectory=src&sha256=abc")
         );
     }
+
+    // Verify discovery of requirements txt.
 
     #[test]
     fn discovers_requirements_txt() {
@@ -172,6 +199,8 @@ mod tests {
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify the expected behavior for skips editable git requirement without egg fragment.
+
     #[test]
     fn skips_editable_git_requirement_without_egg_fragment() {
         let project = temporary_project();
@@ -190,6 +219,8 @@ mod tests {
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify discovery of pyproject dependencies.
 
     #[test]
     fn discovers_pyproject_dependencies() {
@@ -220,6 +251,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify parsing pypi metadata.
 
     #[test]
     fn parses_pypi_metadata() {
@@ -266,6 +299,8 @@ dependencies = [
         )
     }
 
+    // Verify selection of exact package version.
+
     #[test]
     fn selects_exact_package_version() {
         let metadata = super::PackageMetadata {
@@ -291,6 +326,8 @@ dependencies = [
         assert_eq!(release.version, "0.29.0");
         assert_eq!(release.requires_python, Some(">=3.8".to_owned()));
     }
+
+    // Verify selection of latest matching package version.
 
     #[test]
     fn selects_latest_matching_package_version() {
@@ -321,6 +358,8 @@ dependencies = [
         assert_eq!(release.version, "1.5.0");
     }
 
+    // Verify selection of latest release without specifier.
+
     #[test]
     fn selects_latest_release_without_specifier() {
         let metadata = super::PackageMetadata {
@@ -343,6 +382,8 @@ dependencies = [
 
         assert_eq!(release.version, "2.0.0");
     }
+
+    // Verify selection of stable exact match when prerelease also exists.
 
     #[test]
     fn selects_stable_exact_match_when_prerelease_also_exists() {
@@ -368,6 +409,8 @@ dependencies = [
 
         assert_eq!(release.version, "3.9.0");
     }
+
+    // Verify stable-release behavior for release beats prerelease.
 
     #[test]
     fn stable_release_beats_prerelease() {
@@ -402,6 +445,8 @@ dependencies = [
         assert_eq!(release.version, "4.0.0");
     }
 
+    // Verify the expected behavior for prerelease versions are ordered correctly.
+
     #[test]
     fn prerelease_versions_are_ordered_correctly() {
         assert_eq!(
@@ -419,6 +464,8 @@ dependencies = [
             std::cmp::Ordering::Less
         );
     }
+
+    // Verify release behavior for candidate aliases and omitted serial normalize.
 
     #[test]
     fn release_candidate_aliases_and_omitted_serial_normalize() {
@@ -451,6 +498,8 @@ dependencies = [
         );
     }
 
+    // Verify release behavior for candidate serials order numerically and reject invalid suffixes.
+
     #[test]
     fn release_candidate_serials_order_numerically_and_reject_invalid_suffixes() {
         use super::compare_versions;
@@ -480,6 +529,8 @@ dependencies = [
         assert!(error.contains("Invalid package version '1.0rc.invalid'"));
     }
 
+    // Verify release behavior for candidates order after dev and before final and post.
+
     #[test]
     fn release_candidates_order_after_dev_and_before_final_and_post() {
         use super::compare_versions;
@@ -497,6 +548,8 @@ dependencies = [
             );
         }
     }
+
+    // Verify alpha/beta release behavior for beta aliases and separators normalize equivalently.
 
     #[test]
     fn alpha_beta_aliases_and_separators_normalize_equivalently() {
@@ -523,6 +576,8 @@ dependencies = [
             );
         }
     }
+
+    // Verify alpha/beta release behavior for beta serials default to zero and reject invalid suffixes.
 
     #[test]
     fn alpha_beta_serials_default_to_zero_and_reject_invalid_suffixes() {
@@ -562,6 +617,8 @@ dependencies = [
         assert!(error.contains("Invalid package version '1.0a.invalid'"));
     }
 
+    // Verify alpha/beta release behavior for beta versions order across development final and post releases.
+
     #[test]
     fn alpha_beta_versions_order_across_development_final_and_post_releases() {
         use super::compare_versions;
@@ -589,6 +646,8 @@ dependencies = [
         }
     }
 
+    // Verify development-release behavior for release serials are parsed by pep440.
+
     #[test]
     fn development_release_serials_are_parsed_by_pep440() {
         let dev_without_serial = "1.0.dev".parse::<pep440_rs::Version>().unwrap();
@@ -602,6 +661,8 @@ dependencies = [
         assert_eq!(dev_ten.dev(), Some(10));
         assert!("1.0.devinvalid".parse::<pep440_rs::Version>().is_err());
     }
+
+    // Verify development-release behavior for releases order before alpha beta rc and final.
 
     #[test]
     fn development_releases_order_before_alpha_beta_rc_and_final() {
@@ -622,6 +683,8 @@ dependencies = [
 
         assert_eq!(compare_versions("1.0.dev10", "1.0.dev2"), Ordering::Greater);
     }
+
+    // Verify development-release behavior for releases order against post releases numerically.
 
     #[test]
     fn development_releases_order_against_post_releases_numerically() {
@@ -659,6 +722,8 @@ dependencies = [
         );
     }
 
+    // Verify development-release behavior for versions match specifiers and select latest release.
+
     #[test]
     fn development_versions_match_specifiers_and_select_latest_release() {
         assert!(package_version_satisfies("1.0.dev1", "==1.0.dev1"));
@@ -693,6 +758,8 @@ dependencies = [
         assert_eq!(selected.version, "1.0.dev10");
     }
 
+    // Verify preference for stable release over prerelease.
+
     #[test]
     fn prefers_stable_release_over_prerelease() {
         let metadata = super::PackageMetadata {
@@ -721,6 +788,8 @@ dependencies = [
 
         assert_eq!(release.version, "3.0.0");
     }
+
+    // Verify discovery of compatible python versions.
 
     #[test]
     fn finds_compatible_python_versions() {
@@ -754,6 +823,8 @@ dependencies = [
         );
     }
 
+    // Verify exclusion of specific python versions.
+
     #[test]
     fn excludes_specific_python_versions() {
         let release = super::PackageRelease {
@@ -779,6 +850,8 @@ dependencies = [
         );
     }
 
+    // Verify support for compatible release operator.
+
     #[test]
     fn supports_compatible_release_operator() {
         assert!(package_version_satisfies("3.12.0", "~=3.12.0"));
@@ -796,6 +869,8 @@ dependencies = [
         assert!(!package_version_satisfies("1.4.6.0", "~=1.4.5.0"));
     }
 
+    // Verify support for equal version wildcard.
+
     #[test]
     fn supports_equal_version_wildcard() {
         assert!(package_version_satisfies("3.12.0", "==3.12.*"));
@@ -809,6 +884,8 @@ dependencies = [
         assert!(!package_version_satisfies("1!3.12.0", "==3.12.*"));
         assert!(package_version_satisfies("1!3.12.0", "==1!3.12.*"));
     }
+
+    // Verify equality behavior for version wildcard matches normalized release prefixes.
 
     #[test]
     fn equal_version_wildcard_matches_normalized_release_prefixes() {
@@ -838,6 +915,8 @@ dependencies = [
 
         assert!(package_version_satisfies("3.012.5", "==3.012.*"));
     }
+
+    // Verify equality behavior for version wildcard matches release labels by public prefix.
 
     #[test]
     fn equal_version_wildcard_matches_release_labels_by_public_prefix() {
@@ -872,6 +951,8 @@ dependencies = [
         }
     }
 
+    // Verify support for not equal version wildcard.
+
     #[test]
     fn supports_not_equal_version_wildcard() {
         assert!(package_version_satisfies("3.11.9", "!=3.12.*"));
@@ -886,6 +967,8 @@ dependencies = [
         assert!(package_version_satisfies("1!3.12.0", "!=3.12.*"));
         assert!(!package_version_satisfies("1!3.12.0", "!=1!3.12.*"));
     }
+
+    // Verify the expected behavior for not equal version wildcard is inverse for valid operands.
 
     #[test]
     fn not_equal_version_wildcard_is_inverse_for_valid_operands() {
@@ -914,6 +997,8 @@ dependencies = [
             );
         }
     }
+
+    // Verify the expected behavior for not equal version wildcard excludes labels and rejects malformed patterns.
 
     #[test]
     fn not_equal_version_wildcard_excludes_labels_and_rejects_malformed_patterns() {
@@ -951,6 +1036,8 @@ dependencies = [
         }
     }
 
+    // Verify the expected behavior for post releases are ordered correctly.
+
     #[test]
     fn post_releases_are_ordered_correctly() {
         use super::compare_versions;
@@ -970,6 +1057,8 @@ dependencies = [
         );
         assert_eq!(compare_versions("1.0rc1", "1.0"), Ordering::Less);
     }
+
+    // Verify the expected behavior for post releases order with pre dev and normalized spellings.
 
     #[test]
     fn post_releases_order_with_pre_dev_and_normalized_spellings() {
@@ -993,6 +1082,8 @@ dependencies = [
         assert_eq!(compare_versions("1.0_rev2", "1.0.post2"), Ordering::Equal);
         assert_eq!(compare_versions("1.0-3", "1.0.post3"), Ordering::Equal);
     }
+
+    // Verify rejection of malformed postrelease serials.
 
     #[test]
     fn rejects_malformed_postrelease_serials() {
@@ -1019,6 +1110,8 @@ dependencies = [
         );
     }
 
+    // Verify support for basic comparison operators.
+
     #[test]
     fn supports_basic_comparison_operators() {
         assert!(package_version_satisfies("2.0", "==2.0"));
@@ -1039,6 +1132,8 @@ dependencies = [
         assert!(package_version_satisfies("2.0", ">=2.0"));
         assert!(!package_version_satisfies("1.9", ">=2.0"));
     }
+
+    // Verify the expected behavior for equality and inequality ignore omitted trailing release zeros.
 
     #[test]
     fn equality_and_inequality_ignore_omitted_trailing_release_zeros() {
@@ -1062,6 +1157,8 @@ dependencies = [
         }
     }
 
+    // Verify ordering behavior for specifiers cover below equal and above boundaries.
+
     #[test]
     fn ordered_specifiers_cover_below_equal_and_above_boundaries() {
         let cases = [
@@ -1083,6 +1180,8 @@ dependencies = [
         }
     }
 
+    // Verify the expected behavior for exact and ordered specifiers use pep440 versions.
+
     #[test]
     fn exact_and_ordered_specifiers_use_pep440_versions() {
         assert!(package_version_satisfies("1!1.0", ">2.0"));
@@ -1090,6 +1189,8 @@ dependencies = [
         assert!(package_version_satisfies("1.0+local", "==1.0"));
         assert!(!package_version_satisfies("1.0+local", "!=1.0"));
     }
+
+    // Verify version behavior for operators match nonmatch and boundary cases.
 
     #[test]
     fn version_operators_match_nonmatch_and_boundary_cases() {
@@ -1143,6 +1244,8 @@ dependencies = [
         }
     }
 
+    // Verify support for combined version specifiers.
+
     #[test]
     fn supports_combined_version_specifiers() {
         assert!(package_version_satisfies("2.5.0", ">=2.0,<3.0"));
@@ -1151,6 +1254,8 @@ dependencies = [
         assert!(!package_version_satisfies("2.4.0", ">=2.0,!=2.4.0,<3.0"));
     }
 
+    // Verify comma-separated constraint behavior for separated ranges require every component to match.
+
     #[test]
     fn comma_separated_ranges_require_every_component_to_match() {
         assert!(package_version_satisfies("2.5.0", ">=2.0,<3.0"));
@@ -1158,6 +1263,8 @@ dependencies = [
         assert!(!package_version_satisfies("3.0.0", ">=2.0,<3.0"));
         assert!(super::package_version_satisfies("2.5.0", ">=2.0,<<3.0").is_err());
     }
+
+    // Verify the expected behavior for package specifiers match pep440 reference examples.
 
     #[test]
     fn package_specifiers_match_pep440_reference_examples() {
@@ -1190,6 +1297,8 @@ dependencies = [
         }
     }
 
+    // Verify the expected behavior for compatible release operator respects release prefix.
+
     #[test]
     fn compatible_release_operator_respects_release_prefix() {
         assert!(package_version_satisfies("1.4.5", "~=1.4.5"));
@@ -1199,6 +1308,8 @@ dependencies = [
         assert!(package_version_satisfies("1.9.0", "~=1.4"));
         assert!(!package_version_satisfies("2.0.0", "~=1.4"));
     }
+
+    // Verify the expected behavior for compatible release two segment upper bound is next major.
 
     #[test]
     fn compatible_release_two_segment_upper_bound_is_next_major() {
@@ -1220,6 +1331,8 @@ dependencies = [
             );
         }
     }
+
+    // Verify the expected behavior for compatible release three segment upper bound is next minor.
 
     #[test]
     fn compatible_release_three_segment_upper_bound_is_next_minor() {
@@ -1243,6 +1356,8 @@ dependencies = [
         }
     }
 
+    // Verify the expected behavior for compatible release rejects invalid operands with clear errors.
+
     #[test]
     fn compatible_release_rejects_invalid_operands_with_clear_errors() {
         let invalid_specifiers = ["~=1", "~=1.*", "~=1.4.*", "~=1.4+local"];
@@ -1260,6 +1375,8 @@ dependencies = [
             );
         }
     }
+
+    // Verify the expected behavior for compatible release compares pre and post release candidates.
 
     #[test]
     fn compatible_release_compares_pre_and_post_release_candidates() {
@@ -1284,6 +1401,8 @@ dependencies = [
         }
     }
 
+    // Verify rejection of invalid version specifiers.
+
     #[test]
     fn rejects_invalid_version_specifiers() {
         assert!(super::package_version_satisfies("2.0.0", "=>2.0.0").is_err());
@@ -1294,6 +1413,8 @@ dependencies = [
         assert!(super::package_version_satisfies("2.0.0", ">=1.0,").is_err());
         assert!(super::package_version_satisfies("2.0.0", ">=1.0,<").is_err());
     }
+
+    // Verify rejection of malformed and unsupported version wildcards.
 
     #[test]
     fn rejects_malformed_and_unsupported_version_wildcards() {
@@ -1321,6 +1442,8 @@ dependencies = [
         }
     }
 
+    // Verify rejection of malformed package version operands.
+
     #[test]
     fn rejects_malformed_package_version_operands() {
         assert!(super::package_version_satisfies("2.0.0", "==2.invalid").is_err());
@@ -1337,6 +1460,8 @@ dependencies = [
 
         assert!(select_package_release(&metadata, Some(">=2.invalid")).is_err());
     }
+
+    // Verify removal of inline requirement comments.
 
     #[test]
     fn strips_inline_requirement_comments() {
@@ -1357,6 +1482,8 @@ dependencies = [
             "mypackage @ https://example.com/pkg.whl#sha256=abc123"
         );
     }
+
+    // Verify handling of whitespace in requirements.
 
     #[test]
     fn handles_whitespace_in_requirements() {
@@ -1380,6 +1507,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify handling of crlf line endings equivalently to lf.
+
     #[test]
     fn handles_crlf_line_endings_equivalently_to_lf() {
         let project = temporary_project();
@@ -1395,6 +1524,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify handling of mixed line endings.
 
     #[test]
     fn handles_mixed_line_endings() {
@@ -1421,6 +1552,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify handling of backslash line continuations.
+
     #[test]
     fn handles_backslash_line_continuations() {
         let project = temporary_project();
@@ -1441,6 +1574,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify handling of multiple continuation lines and crlf.
 
     #[test]
     fn handles_multiple_continuation_lines_and_crlf() {
@@ -1463,6 +1598,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify handling of comments after continuation lines.
 
     #[test]
     fn handles_comments_after_continuation_lines() {
@@ -1489,6 +1626,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify parsing requirement without extras.
+
     #[test]
     fn parses_requirement_without_extras() {
         assert_eq!(
@@ -1501,6 +1640,8 @@ dependencies = [
             }
         );
     }
+
+    // Verify parsing requirement with one extra.
 
     #[test]
     fn parses_requirement_with_one_extra() {
@@ -1515,6 +1656,8 @@ dependencies = [
         );
     }
 
+    // Verify parsing requirement with multiple extras.
+
     #[test]
     fn parses_requirement_with_multiple_extras() {
         assert_eq!(
@@ -1527,6 +1670,8 @@ dependencies = [
             }
         );
     }
+
+    // Verify parsing extras with version specifier.
 
     #[test]
     fn parses_extras_with_version_specifier() {
@@ -1541,6 +1686,8 @@ dependencies = [
         );
     }
 
+    // Verify parsing extras with whitespace.
+
     #[test]
     fn parses_extras_with_whitespace() {
         assert_eq!(
@@ -1554,25 +1701,35 @@ dependencies = [
         );
     }
 
+    // Verify rejection of empty extras.
+
     #[test]
     fn rejects_empty_extras() {
         assert!(parse_requirement("requests[]").is_err());
     }
+
+    // Verify rejection of missing closing bracket.
 
     #[test]
     fn rejects_missing_closing_bracket() {
         assert!(parse_requirement("requests[security").is_err());
     }
 
+    // Verify rejection of empty extra between commas.
+
     #[test]
     fn rejects_empty_extra_between_commas() {
         assert!(parse_requirement("requests[security,,socks]").is_err());
     }
 
+    // Verify rejection of empty requirement.
+
     #[test]
     fn rejects_empty_requirement() {
         assert!(parse_requirement("").is_err());
     }
+
+    // Verify discovery of requirement with one extra.
 
     #[test]
     fn discovers_requirement_with_one_extra() {
@@ -1592,6 +1749,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify discovery of requirement with multiple extras and specifier.
+
     #[test]
     fn discovers_requirement_with_multiple_extras_and_specifier() {
         let project = temporary_project();
@@ -1608,6 +1767,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify discovery of requirement with extra and environment marker.
 
     #[test]
     fn discovers_requirement_with_extra_and_environment_marker() {
@@ -1634,6 +1795,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify the expected behavior for keeps dependencies with different extras distinct.
+
     #[test]
     fn keeps_dependencies_with_different_extras_distinct() {
         let project = temporary_project();
@@ -1653,6 +1816,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify the expected behavior for canonical names define dependency identity and duplicate detection.
 
     #[test]
     fn canonical_names_define_dependency_identity_and_duplicate_detection() {
@@ -1689,6 +1854,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify the expected behavior for ignores malformed extras.
+
     #[test]
     fn ignores_malformed_extras() {
         let project = temporary_project();
@@ -1707,6 +1874,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify parsing requirement with direct url.
+
     #[test]
     fn parses_requirement_with_direct_url() {
         assert_eq!(
@@ -1719,6 +1888,8 @@ dependencies = [
             }
         );
     }
+
+    // Verify parsing requirement with extras and direct url.
 
     #[test]
     fn parses_requirement_with_extras_and_direct_url() {
@@ -1734,10 +1905,14 @@ dependencies = [
         );
     }
 
+    // Verify rejection of requirement with invalid direct url.
+
     #[test]
     fn rejects_requirement_with_invalid_direct_url() {
         assert!(parse_requirement("mypackage @ not-a-url").is_err());
     }
+
+    // Verify discovery of requirement with direct url and marker.
 
     #[test]
     fn discovers_requirement_with_direct_url_and_marker() {
@@ -1768,6 +1943,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify parsing vcs reference with subdirectory fragment.
+
     #[test]
     fn parses_vcs_reference_with_subdirectory_fragment() {
         let input =
@@ -1783,6 +1960,8 @@ dependencies = [
         assert!(parsed.specifier.is_empty());
     }
 
+    // Verify the expected behavior for preserves vcs reference with revision and egg fragment.
+
     #[test]
     fn preserves_vcs_reference_with_revision_and_egg_fragment() {
         let input = "mypackage @ git+https://github.com/example/repo.git@v1.2.3#egg=mypackage";
@@ -1797,6 +1976,8 @@ dependencies = [
         assert!(parsed.specifier.is_empty());
     }
 
+    // Verify the expected behavior for preserves encoded subdirectory fragment.
+
     #[test]
     fn preserves_encoded_subdirectory_fragment() {
         let input = "mypackage @ git+https://github.com/example/repo.git@main#subdirectory=packages%2Fpython_pkg";
@@ -1808,6 +1989,8 @@ dependencies = [
             Some("git+https://github.com/example/repo.git@main#subdirectory=packages%2Fpython_pkg")
         );
     }
+
+    // Verify discovery of vcs reference with subdirectory fragment.
 
     #[test]
     fn discovers_vcs_reference_with_subdirectory_fragment() {
@@ -1832,6 +2015,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify discovery of editable git requirement.
+
     #[test]
     fn discovers_editable_git_requirement() {
         let project = temporary_project();
@@ -1854,6 +2039,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify discovery of long form editable git requirement.
 
     #[test]
     fn discovers_long_form_editable_git_requirement() {
@@ -1878,6 +2065,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify discovery of editable git requirement with extras.
+
     #[test]
     fn discovers_editable_git_requirement_with_extras() {
         let project = temporary_project();
@@ -1901,6 +2090,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify discovery of editable git requirement with subdirectory.
 
     #[test]
     fn discovers_editable_git_requirement_with_subdirectory() {
@@ -1927,6 +2118,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify discovery of mercurial vcs reference.
+
     #[test]
     fn discovers_mercurial_vcs_reference() {
         let project = temporary_project();
@@ -1947,6 +2140,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify discovery of subversion vcs reference.
 
     #[test]
     fn discovers_subversion_vcs_reference() {
@@ -1969,6 +2164,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify discovery of bazaar vcs reference.
+
     #[test]
     fn discovers_bazaar_vcs_reference() {
         let project = temporary_project();
@@ -1989,6 +2186,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify discovery of git references with different revision formats.
 
     #[test]
     fn discovers_git_references_with_different_revision_formats() {
@@ -2013,6 +2212,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify discovery of editable git requirement with reordered fragments.
+
     #[test]
     fn discovers_editable_git_requirement_with_reordered_fragments() {
         let project = temporary_project();
@@ -2030,6 +2231,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify the expected behavior for skips editable git requirement with malformed egg extras.
+
     #[test]
     fn skips_editable_git_requirement_with_malformed_egg_extras() {
         let project = temporary_project();
@@ -2046,6 +2249,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify the expected behavior for skips editable local path without package metadata support.
+
     #[test]
     fn skips_editable_local_path_without_package_metadata_support() {
         let project = temporary_project();
@@ -2059,6 +2264,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify discovery of requirements with line continuation.
 
     #[test]
     fn discovers_requirements_with_line_continuation() {
@@ -2077,6 +2284,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify the expected behavior for skips requirements options without skipping valid dependencies.
 
     #[test]
     fn skips_requirements_options_without_skipping_valid_dependencies() {
@@ -2108,6 +2317,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify handling of editable requirements with requirement without trailing newline is handled.
+
     #[test]
     fn editable_requirement_without_trailing_newline_is_handled() {
         let project = temporary_project();
@@ -2124,6 +2335,8 @@ dependencies = [
 
         fs::remove_dir_all(project).unwrap();
     }
+
+    // Verify parsing supported vcs direct urls.
 
     #[test]
     fn parses_supported_vcs_direct_urls() {
@@ -2158,6 +2371,8 @@ dependencies = [
         }
     }
 
+    // Verify rejection of unsupported vcs direct urls.
+
     #[test]
     fn rejects_unsupported_vcs_direct_urls() {
         for url in [
@@ -2174,6 +2389,7 @@ dependencies = [
             );
         }
     }
+    // Verify the expected behavior for accepts valid compound environment markers.
     #[test]
     fn accepts_valid_compound_environment_markers() {
         let project = temporary_project();
@@ -2196,6 +2412,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify the expected behavior for reports invalid requirements environment markers with source location.
+
     #[test]
     fn reports_invalid_requirements_environment_markers_with_source_location() {
         let project = temporary_project();
@@ -2214,6 +2432,8 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    // Verify dependency-marker behavior for marker matches python version.
+
     #[test]
     fn dependency_marker_matches_python_version() {
         let dependency = Dependency {
@@ -2230,6 +2450,8 @@ dependencies = [
         assert!(dependency_applies_to_environment(&dependency, &environment).unwrap());
     }
 
+    // Verify dependency-marker behavior for marker rejects mismatched python version.
+
     #[test]
     fn dependency_marker_rejects_mismatched_python_version() {
         let dependency = Dependency {
@@ -2245,6 +2467,8 @@ dependencies = [
 
         assert!(!dependency_applies_to_environment(&dependency, &environment).unwrap());
     }
+
+    // Verify dependency-marker behavior for marker checks platform and compound conditions.
 
     #[test]
     fn dependency_marker_checks_platform_and_compound_conditions() {
@@ -2264,6 +2488,8 @@ dependencies = [
         assert!(!dependency_applies_to_environment(&dependency, &linux).unwrap());
     }
 
+    // Verify dependency-marker behavior for without marker applies to every environment.
+
     #[test]
     fn dependency_without_marker_applies_to_every_environment() {
         let dependency = Dependency {
@@ -2279,6 +2505,8 @@ dependencies = [
 
         assert!(dependency_applies_to_environment(&dependency, &environment).unwrap());
     }
+
+    // Verify the expected behavior for compatibility ignores dependencies for other platforms.
 
     #[test]
     fn compatibility_ignores_dependencies_for_other_platforms() {
@@ -2321,6 +2549,8 @@ dependencies = [
         );
     }
 
+    // Verify dependency-marker behavior for marker respects parentheses and boolean precedence.
+
     #[test]
     fn dependency_marker_respects_parentheses_and_boolean_precedence() {
         let dependency = Dependency {
@@ -2344,6 +2574,8 @@ dependencies = [
         assert!(!dependency_applies_to_environment(&dependency, &linux).unwrap());
         assert!(dependency_applies_to_environment(&dependency, &python39).unwrap());
     }
+
+    // Verify dependency-marker behavior for marker supports in and not in.
 
     #[test]
     fn dependency_marker_supports_in_and_not_in() {
@@ -2371,6 +2603,8 @@ dependencies = [
         assert!(dependency_applies_to_environment(&excluded, &windows).unwrap());
     }
 
+    // Verify dependency-marker behavior for marker checks python full version boundaries.
+
     #[test]
     fn dependency_marker_checks_python_full_version_boundaries() {
         let dependency = Dependency {
@@ -2389,6 +2623,8 @@ dependencies = [
         assert!(!dependency_applies_to_environment(&dependency, &python39).unwrap());
     }
 
+    // Verify dependency-marker behavior for marker returns error for invalid expression.
+
     #[test]
     fn dependency_marker_returns_error_for_invalid_expression() {
         let dependency = Dependency {
@@ -2404,6 +2640,8 @@ dependencies = [
 
         assert!(dependency_applies_to_environment(&dependency, &environment).is_err());
     }
+
+    // Verify the expected behavior for compatibility evaluates markers for each candidate python version.
 
     #[test]
     fn compatibility_evaluates_markers_for_each_candidate_python_version() {
@@ -2443,6 +2681,8 @@ dependencies = [
         );
     }
 
+    // Verify the expected behavior for compatibility evaluates markers for each candidate python version second.
+
     #[test]
     fn compatibility_evaluates_markers_for_each_candidate_python_version_second() {
         let dependency = Dependency {
@@ -2471,6 +2711,8 @@ dependencies = [
         assert_eq!(compatible, ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]);
     }
 
+    // Verify dependency-marker behavior for marker evaluates candidate python full version.
+
     #[test]
     fn dependency_marker_evaluates_candidate_python_full_version() {
         let dependency = Dependency {
@@ -2493,6 +2735,8 @@ dependencies = [
             .unwrap()
         );
     }
+
+    // Verify dependency-marker behavior for marker combines candidate python and platform.
 
     #[test]
     fn dependency_marker_combines_candidate_python_and_platform() {
@@ -2534,6 +2778,8 @@ dependencies = [
         );
     }
 
+    // Verify the expected behavior for missing release is ignored when dependency marker does not apply.
+
     #[test]
     fn missing_release_is_ignored_when_dependency_marker_does_not_apply() {
         let dependency = Dependency {
@@ -2556,6 +2802,8 @@ dependencies = [
 
         assert_eq!(compatible, ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]);
     }
+
+    // Verify dependency-marker behavior for marker matches active extra.
 
     #[test]
     fn dependency_marker_matches_active_extra() {
@@ -2591,6 +2839,8 @@ dependencies = [
         );
     }
 
+    // Verify dependency-marker behavior for marker not equal respects active extra.
+
     #[test]
     fn dependency_marker_not_equal_respects_active_extra() {
         let dependency = Dependency {
@@ -2624,6 +2874,8 @@ dependencies = [
             .unwrap()
         );
     }
+
+    // Verify the expected behavior for candidate python version evaluation preserves active extra.
 
     #[test]
     fn candidate_python_version_evaluation_preserves_active_extra() {
@@ -2671,6 +2923,8 @@ dependencies = [
         );
     }
 
+    // Verify dependency-marker behavior for marker respects boolean precedence.
+
     #[test]
     fn dependency_marker_respects_boolean_precedence() {
         let dependency = Dependency {
@@ -2696,6 +2950,8 @@ dependencies = [
         assert!(!dependency_applies_to_environment(&dependency, &python312_linux).unwrap());
     }
 
+    // Verify dependency-marker behavior for marker handles python version equality.
+
     #[test]
     fn dependency_marker_handles_python_version_equality() {
         let dependency = Dependency {
@@ -2713,6 +2969,8 @@ dependencies = [
         assert!(dependency_applies_to_environment(&dependency, &python312).unwrap());
         assert!(!dependency_applies_to_environment(&dependency, &python313).unwrap());
     }
+
+    // Verify dependency-marker behavior for marker handles platform and implementation.
 
     #[test]
     fn dependency_marker_handles_platform_and_implementation() {
@@ -2732,6 +2990,7 @@ dependencies = [
         assert!(dependency_applies_to_environment(&dependency, &linux).unwrap());
     }
 
+    // Create a fresh temporary project directory for tests that read files from disk.
     fn temporary_project() -> std::path::PathBuf {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
