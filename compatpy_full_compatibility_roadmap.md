@@ -118,7 +118,7 @@ automatically.
   - [x] Keep same-package declarations with different extras as distinct dependencies.
 - [/] Parse direct URL requirements.
   - [x] Preserve package names and supported HTTP(S), file, and VCS direct-reference strings.
-  - [ ] Validate complete URL syntax and reject empty/malformed authorities, paths, or fragments.
+  - [/] Validate complete URL syntax and reject empty/malformed authorities, paths, or fragments.
   - [ ] Preserve source-specific direct-reference fields and report unsupported schemes instead of silently skipping them.
 - [x] Handle Git/VCS references where supported.
   - [x] Preserve Git direct references with revision, `egg`, and subdirectory fragments.

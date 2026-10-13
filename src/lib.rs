@@ -1912,6 +1912,11 @@ dependencies = [
         assert!(parse_requirement("mypackage @ not-a-url").is_err());
     }
 
+    #[test]
+    fn rejects_direct_url_with_missing_authority() {
+        assert!(parse_requirement("mypackage @ https://").is_err())
+    }
+
     // Verify discovery of requirement with direct url and marker.
 
     #[test]
