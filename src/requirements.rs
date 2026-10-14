@@ -2,6 +2,28 @@ use url::Url;
 
 use crate::package_name::normalize_package_name;
 
+fn has_valid_percent_encoding(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    let mut index = 0;
+
+    while index < bytes.len() {
+        if bytes[index] == b'%' {
+            if index + 2 >= bytes.len()
+                || !bytes[index + 1].is_ascii_hexdigit()
+                || !bytes[index + 2].is_ascii_hexdigit()
+            {
+                return false;
+            }
+
+            index += 3;
+        } else {
+            index += 1;
+        }
+    }
+
+    true
+}
+
 // Represents a parsed package requirement.
 #[derive(Debug, PartialEq, Eq)]
 pub struct ParsedRequirement {
@@ -25,6 +47,10 @@ pub fn parse_requirement(input: &str) -> Result<ParsedRequirement, String> {
         // Handle direct URL requirements.
         Some((name, url)) => {
             let url = url.trim();
+
+            if !has_valid_percent_encoding(url) {
+                return Err("Invalid percent-encoding in direct URL".to_string());
+            }
 
             // Supported standard URL schemes.
             let is_supported_url = ["https://", "http://", "file://"]

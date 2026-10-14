@@ -384,6 +384,28 @@ fn discover_from_pyproject(
     Ok(())
 }
 
+fn has_valid_percent_encoding(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    let mut index = 0;
+
+    while index < bytes.len() {
+        if bytes[index] == b'%' {
+            if index + 2 >= bytes.len()
+                || !bytes[index + 1].is_ascii_hexdigit()
+                || !bytes[index + 2].is_ascii_hexdigit()
+            {
+                return false;
+            }
+
+            index += 3;
+        } else {
+            index += 1;
+        }
+    }
+
+    true
+}
+
 fn is_supported_direct_url(url: &str) -> bool {
     [
         "https://",
@@ -450,6 +472,10 @@ fn add_requirement(
     let (name_and_extras, url) = match requirement.split_once('@') {
         Some((name, url)) => {
             let url = url.trim();
+
+            if !has_valid_percent_encoding(url) {
+                return Err(format!("Invalid percent-encoding in direct URL: {url:?}"));
+            }
 
             if !is_supported_direct_url(url) {
                 test_debug!("add_requirement: ignoring unsupported or invalid direct URL");

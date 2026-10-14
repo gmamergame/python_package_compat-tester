@@ -1933,6 +1933,10 @@ dependencies = [
     #[test]
     fn rejects_direct_url_with_invalid_percent_encoding() {
         assert!(parse_requirement("mypackage @ https://example.com/%ZZ").is_err());
+        assert!(parse_requirement("mypackage @ https://example.com/%2").is_err());
+        assert!(parse_requirement("mypackage @ https://example.com/%").is_err());
+        assert!(parse_requirement("mypackage @ https://example.com/%2F").is_ok());
+        assert!(parse_requirement("mypackage @ https://example.com/%20").is_ok());
     }
 
     // Verify discovery of requirement with direct url and marker.
