@@ -1912,9 +1912,27 @@ dependencies = [
         assert!(parse_requirement("mypackage @ not-a-url").is_err());
     }
 
+    // Reject direct URLs with a missing authority.
+
     #[test]
     fn rejects_direct_url_with_missing_authority() {
         assert!(parse_requirement("mypackage @ https://").is_err())
+    }
+
+    // Reject direct URLs with an invalid port.
+
+    #[test]
+    fn rejects_direct_url_with_invalid_port() {
+        assert!(parse_requirement("mypackage @ https://example.com:invalid/pkg.whl").is_err());
+        assert!(parse_requirement("mypackage @ https://example.com:99999/pkg.whl").is_err());
+        assert!(parse_requirement("mypackage @ https://example.com:80:90/pkg.wh").is_err());
+    }
+
+    // Reject  direct URLs with an invalid encoding
+
+    #[test]
+    fn rejects_direct_url_with_invalid_percent_encoding() {
+        assert!(parse_requirement("mypackage @ https://example.com/%ZZ").is_err());
     }
 
     // Verify discovery of requirement with direct url and marker.

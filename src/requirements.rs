@@ -1,4 +1,4 @@
-use url::Host;
+use url::Url;
 
 use crate::package_name::normalize_package_name;
 
@@ -61,6 +61,15 @@ pub fn parse_requirement(input: &str) -> Result<ParsedRequirement, String> {
                 return Err("Invalid direct URL".to_string());
             }
 
+            let url_to_validate = if is_supported_vcs_url {
+                url.split_once("+").map(|(_, rest)| rest).unwrap_or("")
+            } else {
+                url
+            };
+
+            if Url::parse(url_to_validate).is_err() {
+                return Err("Url is invalid".to_string());
+            }
             (name.trim(), String::new(), Some(url.to_owned()))
         }
         // Handle regular requirements with optional version constraints.
