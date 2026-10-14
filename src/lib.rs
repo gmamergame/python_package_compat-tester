@@ -1939,7 +1939,23 @@ dependencies = [
         assert!(parse_requirement("mypackage @ https://example.com/%20").is_ok());
     }
 
-    // Verify discovery of requirement with direct url and marker.
+    #[test]
+    fn rejects_direct_url_with_invalid_scheme() {
+        assert!(parse_requirement("mypackage @ ftp://example.com/pkg.whl").is_err());
+        assert!(parse_requirement("mypackage @ file:///path/to/pkg.whl").is_err());
+        assert!(parse_requirement("mypackage @ git+https://example.com/repo.git").is_ok());
+    }
+
+    #[test]
+    fn preserve_vcs_direct_url_fields() {
+        let url =
+            "git+https://github.com/example/repo.git@v1.2.3#egg=mypackage&subdirectory=python";
+
+        let parsed = parse_requirement(&format!("mypackage @ {url}"))
+            .expect("valid VCS direct URL should parse");
+
+        assert_eq!(parsed.url.as_deref(), Some(url));
+    }
 
     #[test]
     fn discovers_requirement_with_direct_url_and_marker() {

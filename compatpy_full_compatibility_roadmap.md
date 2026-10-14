@@ -116,11 +116,11 @@ automatically.
   - [x] Retain extras when the requirement also has a version specifier and marker.
   - [x] Reject empty extras, missing closing brackets, empty comma-separated entries, and trailing text.
   - [x] Keep same-package declarations with different extras as distinct dependencies.
-- [/] Parse direct URL requirements.
+- [x] Parse direct URL requirements.
   - [x] Preserve package names and supported HTTP(S), file, and VCS direct-reference strings.
-  - [/] Validate complete URL syntax and reject empty/malformed authorities, paths, or fragments.
-  - [ ] Preserve source-specific direct-reference fields and report unsupported schemes instead of silently skipping them.
-- [x] Handle Git/VCS references where supported.
+  - [x] Validate complete URL syntax and reject empty/malformed authorities, paths, or fragments.
+  - [x] Preserve source-specific direct-reference fields and report unsupported schemes instead of silently skipping them.
+- [x] Handle Git/VS references where supported.
   - [x] Preserve Git direct references with revision, `egg`, and subdirectory fragments.
   - [x] Preserve percent-encoded subdirectory fragments without decoding or rewriting them.
   - [x] Discover short-form and long-form editable Git requirements when `#egg=` identifies the package.

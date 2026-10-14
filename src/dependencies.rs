@@ -478,8 +478,13 @@ fn add_requirement(
             }
 
             if !is_supported_direct_url(url) {
-                test_debug!("add_requirement: ignoring unsupported or invalid direct URL");
-                return Ok(());
+                let location = line_number
+                    .map(|line| format!("{}:{line}", source.display()))
+                    .unwrap_or_else(|| source.display().to_string());
+
+                return Err(format!(
+                    "{location}: unsupported direct URL scheme in requirement {original_requirement:?}: {url:?}"
+                ));
             }
 
             (name.trim(), Some(url.to_owned()))
