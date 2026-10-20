@@ -33,7 +33,7 @@ pub use requirements::{ParsedRequirement, parse_requirement};
 #[cfg(test)]
 use compatibility::{compare_versions, package_version_satisfies};
 #[cfg(test)]
-use dependencies::strip_inline_comment;
+use dependencies::{RequirementLineKind, classify_requirement_line, strip_inline_comment};
 #[cfg(test)]
 use package_name::normalize_package_name;
 #[cfg(test)]
@@ -44,9 +44,9 @@ use pypi::parse_pypi_metadata;
 mod tests {
 
     use super::{
-        Command, Dependency, PackageRelease, ParsedRequirement, dependency_applies_to_environment,
-        discover_dependencies, normalize_package_name, parse_args, parse_requirement,
-        select_package_release,
+        Command, Dependency, PackageRelease, ParsedRequirement, RequirementLineKind,
+        classify_requirement_line, dependency_applies_to_environment, discover_dependencies,
+        normalize_package_name, parse_args, parse_requirement, select_package_release,
     };
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -2306,6 +2306,33 @@ dependencies = [
         assert!(dependencies.is_empty());
 
         fs::remove_dir_all(project).unwrap();
+    }
+
+    #[test]
+    fn distinguishes_local_paths_from_pip_options() {
+        for input in [
+            ".",
+            "..",
+            "./my_package",
+            r"..\my_package",
+            "/tmp/my_package",
+            r"C:\projects\my_package",
+            r"\\server\share\my_package",
+        ] {
+            assert!(matches!(
+                classify_requirement_line(input),
+                RequirementLineKind::LocalPath(_)
+            ));
+            assert!(matches!(
+                classify_requirement_line(&format!("-e {input}")),
+                RequirementLineKind::LocalPath(_)
+            ));
+        }
+
+        assert_eq!(
+            classify_requirement_line("--index-url https://example.com/simple"),
+            RequirementLineKind::PipOption("--index-url https://example.com/simple")
+        );
     }
 
     // Verify discovery of requirements with line continuation.

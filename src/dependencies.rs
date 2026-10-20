@@ -269,12 +269,47 @@ fn normalize_editable_requirement(requirement: &str) -> Option<String> {
     Some(format!("{package}{extras} @ {requirement}"))
 }
 
-fn parse_editable_requirement(line: &str) -> Option<String> {
+fn parse_editable_requirement(line: &str) -> Option<&str> {
     line.strip_prefix("--editable ")
         .or_else(|| line.strip_prefix("-e "))
         .map(str::trim)
         .filter(|requirement| !requirement.is_empty())
-        .map(str::to_owned)
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum RequirementLineKind<'a> {
+    Editable(&'a str),
+    LocalPath(&'a str),
+    PipOption(&'a str),
+    Package(&'a str),
+}
+
+fn is_local_path(requirement: &str) -> bool {
+    let bytes = requirement.as_bytes();
+
+    requirement.starts_with('.')
+        || requirement.starts_with('/')
+        || requirement.starts_with('\\')
+        || (bytes.len() >= 3
+            && bytes[0].is_ascii_alphabetic()
+            && bytes[1] == b':'
+            && (bytes[2] == b'/' || bytes[2] == b'\\'))
+}
+
+pub(crate) fn classify_requirement_line(line: &str) -> RequirementLineKind<'_> {
+    if let Some(editable) = parse_editable_requirement(line) {
+        if is_local_path(&editable) {
+            RequirementLineKind::LocalPath(editable)
+        } else {
+            RequirementLineKind::Editable(editable)
+        }
+    } else if is_local_path(line) {
+        RequirementLineKind::LocalPath(line)
+    } else if line.starts_with('-') {
+        RequirementLineKind::PipOption(line)
+    } else {
+        RequirementLineKind::Package(line)
+    }
 }
 
 fn discover_from_requirements(
@@ -318,21 +353,30 @@ fn discover_from_requirements(
 
         if requirement.is_empty() {
             test_debug!("requirements: skipping empty logical line");
-        } else if let Some(editable) = parse_editable_requirement(requirement) {
-            test_debug!("requirements: parsing editable requirement {editable:?}");
-
-            if let Some(normalized) = normalize_editable_requirement(&editable) {
-                add_requirement(&normalized, source, logical_line_number, dependencies)?;
-            } else {
-                test_debug!(
-                    "requirements: skipping editable requirement without a valid egg fragment"
-                );
-            }
-        } else if !requirement.starts_with('-') {
-            test_debug!("requirements: parsing logical line {requirement:?}");
-            add_requirement(requirement, source, logical_line_number, dependencies)?;
         } else {
-            test_debug!("requirements: skipping unsupported option {requirement:?}");
+            match classify_requirement_line(requirement) {
+                RequirementLineKind::Editable(editable) => {
+                    test_debug!("requirements: parsing editable requirement {editable:?}");
+
+                    if let Some(normalized) = normalize_editable_requirement(editable) {
+                        add_requirement(&normalized, source, logical_line_number, dependencies)?;
+                    } else {
+                        test_debug!(
+                            "requirements: skipping editable requirement without a valid egg fragment"
+                        );
+                    }
+                }
+                RequirementLineKind::LocalPath(_path) => {
+                    test_debug!("requirements: recognized local path requirement {_path:?}");
+                }
+                RequirementLineKind::PipOption(_option) => {
+                    test_debug!("requirements: skipping unsupported option {_option:?}");
+                }
+                RequirementLineKind::Package(package) => {
+                    test_debug!("requirements: parsing logical line {package:?}");
+                    add_requirement(package, source, logical_line_number, dependencies)?;
+                }
+            }
         }
 
         logical_line.clear();
@@ -344,10 +388,21 @@ fn discover_from_requirements(
         let requirement = strip_inline_comment(logical_line.trim()).trim();
 
         if !requirement.is_empty() {
-            if let Some(editable) = parse_editable_requirement(requirement) {
-                add_requirement(&editable, source, logical_line_number, dependencies)?;
-            } else if !requirement.starts_with('-') {
-                add_requirement(requirement, source, logical_line_number, dependencies)?;
+            match classify_requirement_line(requirement) {
+                RequirementLineKind::Editable(editable) => {
+                    if let Some(normalized) = normalize_editable_requirement(editable) {
+                        add_requirement(&normalized, source, logical_line_number, dependencies)?;
+                    }
+                }
+                RequirementLineKind::Package(package) => {
+                    add_requirement(package, source, logical_line_number, dependencies)?;
+                }
+                RequirementLineKind::LocalPath(_path) => {
+                    test_debug!("requirements: recognized local path requirement {_path:?}");
+                }
+                RequirementLineKind::PipOption(_option) => {
+                    test_debug!("requirements: skipping unsupported option {_option:?}");
+                }
             }
         }
     }
