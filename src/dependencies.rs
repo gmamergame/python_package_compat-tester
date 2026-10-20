@@ -325,7 +325,7 @@ pub(crate) fn resolve_local_path(requirement: &str, source: &Path) -> PathBuf {
 
 pub(crate) fn classify_requirement_line(line: &str) -> RequirementLineKind<'_> {
     if let Some(editable) = parse_editable_requirement(line) {
-        if is_local_path(&editable) {
+        if is_local_path(editable) {
             RequirementLineKind::LocalPath {
                 path: editable,
                 editable: true,
