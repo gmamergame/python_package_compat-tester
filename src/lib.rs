@@ -33,7 +33,9 @@ pub use requirements::{ParsedRequirement, parse_requirement};
 #[cfg(test)]
 use compatibility::{compare_versions, package_version_satisfies};
 #[cfg(test)]
-use dependencies::{RequirementLineKind, classify_requirement_line, strip_inline_comment};
+use dependencies::{
+    RequirementLineKind, classify_requirement_line, resolve_local_path, strip_inline_comment,
+};
 #[cfg(test)]
 use package_name::normalize_package_name;
 #[cfg(test)]
@@ -46,7 +48,8 @@ mod tests {
     use super::{
         Command, Dependency, PackageRelease, ParsedRequirement, RequirementLineKind,
         classify_requirement_line, dependency_applies_to_environment, discover_dependencies,
-        normalize_package_name, parse_args, parse_requirement, select_package_release,
+        normalize_package_name, parse_args, parse_requirement, resolve_local_path,
+        select_package_release,
     };
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -2333,6 +2336,29 @@ dependencies = [
             classify_requirement_line("--index-url https://example.com/simple"),
             RequirementLineKind::PipOption("--index-url https://example.com/simple")
         );
+    }
+
+    #[test]
+    fn resolves_relative_local_paths_against_requirements_file() {
+        let project = temporary_project();
+        let source = project.join("requirements/nested/requirements.txt");
+
+        assert_eq!(
+            resolve_local_path("../local_package", &source),
+            project.join("requirements/local_package")
+        );
+        assert_eq!(
+            resolve_local_path("./local_package", &source),
+            project.join("requirements/nested/local_package")
+        );
+
+        let absolute = project.join("absolute_package");
+        assert_eq!(
+            resolve_local_path(&absolute.to_string_lossy(), &source),
+            absolute
+        );
+
+        fs::remove_dir_all(project).unwrap();
     }
 
     // Verify discovery of requirements with line continuation.

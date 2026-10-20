@@ -296,6 +296,33 @@ fn is_local_path(requirement: &str) -> bool {
             && (bytes[2] == b'/' || bytes[2] == b'\\'))
 }
 
+fn normalize_path(path: PathBuf) -> PathBuf {
+    let mut normalized = PathBuf::new();
+
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                normalized.pop();
+            }
+            _ => normalized.push(component),
+        }
+    }
+
+    normalized
+}
+
+pub(crate) fn resolve_local_path(requirement: &str, source: &Path) -> PathBuf {
+    let path = Path::new(requirement);
+    let path = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        source.parent().unwrap_or_else(|| Path::new(".")).join(path)
+    };
+
+    normalize_path(path)
+}
+
 pub(crate) fn classify_requirement_line(line: &str) -> RequirementLineKind<'_> {
     if let Some(editable) = parse_editable_requirement(line) {
         if is_local_path(&editable) {
@@ -367,7 +394,11 @@ fn discover_from_requirements(
                     }
                 }
                 RequirementLineKind::LocalPath(_path) => {
-                    test_debug!("requirements: recognized local path requirement {_path:?}");
+                    let _resolved = resolve_local_path(_path, source);
+                    test_debug!(
+                        "requirements: recognized local path requirement {_path:?} as '{}'",
+                        _resolved.display()
+                    );
                 }
                 RequirementLineKind::PipOption(_option) => {
                     test_debug!("requirements: skipping unsupported option {_option:?}");
@@ -398,7 +429,11 @@ fn discover_from_requirements(
                     add_requirement(package, source, logical_line_number, dependencies)?;
                 }
                 RequirementLineKind::LocalPath(_path) => {
-                    test_debug!("requirements: recognized local path requirement {_path:?}");
+                    let _resolved = resolve_local_path(_path, source);
+                    test_debug!(
+                        "requirements: recognized local path requirement {_path:?} as '{}'",
+                        _resolved.display()
+                    );
                 }
                 RequirementLineKind::PipOption(_option) => {
                     test_debug!("requirements: skipping unsupported option {_option:?}");

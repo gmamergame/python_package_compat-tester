@@ -130,7 +130,7 @@ automatically.
 - [/] Handle local paths and editable installs where supported.
   - [x] Handle editable VCS references with valid `#egg=` metadata.
   - [x] Recognize local path requirement syntax separately from unsupported pip options.
-  - [ ] Resolve relative local paths against the containing requirements file.
+  - [x] Resolve relative local paths against the containing requirements file.
   - [ ] Read local project metadata without executing project code.
   - [ ] Define and implement editable local project behavior when metadata is unavailable.
   - [ ] Return a contextual unsupported/invalid-input error rather than silently dropping an unparseable local requirement.
