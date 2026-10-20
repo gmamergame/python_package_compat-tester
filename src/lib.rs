@@ -2361,6 +2361,41 @@ dependencies = [
         fs::remove_dir_all(project).unwrap();
     }
 
+    #[test]
+    fn discovers_dependencies_from_local_pyproject_without_executing_code() {
+        let project = temporary_project();
+        let local_project = project.join("local_package");
+        fs::create_dir_all(&local_project).unwrap();
+        fs::write(
+            local_project.join("pyproject.toml"),
+            r#"[project]
+name = "local-package"
+dependencies = ["requests>=2.0", "Flask"]
+"#,
+        )
+        .unwrap();
+        fs::write(
+            local_project.join("setup.py"),
+            "raise RuntimeError('setup.py must not be executed')\n",
+        )
+        .unwrap();
+        fs::write(project.join("requirements.txt"), "./local_package\n").unwrap();
+
+        let dependencies = discover_dependencies(&project).unwrap();
+
+        assert_eq!(dependencies.len(), 2);
+        assert!(dependencies.iter().any(|dependency| {
+            dependency.name == "requests"
+                && dependency.specifier.as_deref() == Some(">=2.0")
+                && dependency.source == local_project.join("pyproject.toml")
+        }));
+        assert!(dependencies.iter().any(|dependency| {
+            dependency.name == "flask" && dependency.source == local_project.join("pyproject.toml")
+        }));
+
+        fs::remove_dir_all(project).unwrap();
+    }
+
     // Verify discovery of requirements with line continuation.
 
     #[test]

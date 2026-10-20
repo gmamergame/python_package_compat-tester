@@ -399,6 +399,7 @@ fn discover_from_requirements(
                         "requirements: recognized local path requirement {_path:?} as '{}'",
                         _resolved.display()
                     );
+                    discover_local_project_metadata(&_resolved, dependencies)?;
                 }
                 RequirementLineKind::PipOption(_option) => {
                     test_debug!("requirements: skipping unsupported option {_option:?}");
@@ -434,6 +435,7 @@ fn discover_from_requirements(
                         "requirements: recognized local path requirement {_path:?} as '{}'",
                         _resolved.display()
                     );
+                    discover_local_project_metadata(&_resolved, dependencies)?;
                 }
                 RequirementLineKind::PipOption(_option) => {
                     test_debug!("requirements: skipping unsupported option {_option:?}");
@@ -472,6 +474,24 @@ fn discover_from_pyproject(
     }
 
     Ok(())
+}
+
+fn discover_local_project_metadata(
+    project_path: &Path,
+    dependencies: &mut Vec<Dependency>,
+) -> Result<(), String> {
+    let pyproject = project_path.join("pyproject.toml");
+    if !pyproject.is_file() {
+        test_debug!(
+            "local requirement '{}': no pyproject.toml found",
+            project_path.display()
+        );
+        return Ok(());
+    }
+
+    let contents = fs::read_to_string(&pyproject)
+        .map_err(|error| format!("failed to read '{}': {error}", pyproject.display()))?;
+    discover_from_pyproject(&contents, &pyproject, dependencies)
 }
 
 fn has_valid_percent_encoding(value: &str) -> bool {
