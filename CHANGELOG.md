@@ -2,6 +2,46 @@
 
 ---
 
+## 26.10.4 - 2026-10-20
+
+### Added
+- Evaluate environment markers for target Python versions, platforms,
+  implementations, and active extras through the CLI compatibility flow.
+- Support PEP 440 development, alpha, beta, release-candidate, post-release,
+  compatible-release, wildcard, and combined version-specifier cases.
+- Recognize local path requirements separately from unsupported pip options.
+- Resolve relative local paths against the containing requirements file.
+- Read dependencies from local `pyproject.toml` metadata without executing project code.
+- Support editable local projects with contextual warnings when metadata is unavailable or invalid.
+- Validate direct-reference URLs and supported direct-reference schemes.
+
+### Changed
+- Route compatibility analysis through marker-aware dependency evaluation.
+- Improve package-version parsing and comparison behavior using validated PEP 440
+  semantics, including prerelease and post-release ordering.
+- Expand dependency and direct-reference parsing diagnostics and preserve
+  requirements-file context for local project warnings.
+
+### Fixed
+- Reject malformed direct URLs, unsupported direct-reference schemes, missing
+  URL authorities, invalid percent-encoding, and malformed version operands
+  instead of silently accepting or coercing them.
+- Correct compatibility handling for omitted release components, wildcard
+  labels, compatible-release bounds, and prerelease/post-release comparisons.
+
+### Tests
+- Add comprehensive coverage for environment markers and PEP 440 version
+  normalization, ordering, boundaries, aliases, and invalid inputs.
+- Add coverage for absolute, relative, missing, unreadable, and editable local
+  requirements.
+
+### Maintenance
+- Update project documentation and roadmap coverage for the expanded
+  compatibility and requirements parsing behavior.
+- Add repository-wide editor and line-ending configuration.
+
+---
+
 ## 26.10.3 - 2026-10-11
 
 ### Added
