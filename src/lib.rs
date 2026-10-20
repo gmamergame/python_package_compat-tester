@@ -2300,13 +2300,16 @@ dependencies = [
     #[test]
     fn skips_editable_local_path_without_package_metadata_support() {
         let project = temporary_project();
-        fs::write(project.join("requirements.txt"), "-e .\n-e ./my_package\n").unwrap();
+        fs::write(
+            project.join("requirements.txt"),
+            "-e .\n-e ./my_package\nrequests>=2.0\n",
+        )
+        .unwrap();
 
         let dependencies = discover_dependencies(&project).unwrap();
 
-        // Documents current behavior: local editable paths aren't
-        // normalized into named dependencies by the current helper.
-        assert!(dependencies.is_empty());
+        assert_eq!(dependencies.len(), 1);
+        assert_eq!(dependencies[0].name, "requests");
 
         fs::remove_dir_all(project).unwrap();
     }
@@ -2324,11 +2327,14 @@ dependencies = [
         ] {
             assert!(matches!(
                 classify_requirement_line(input),
-                RequirementLineKind::LocalPath(_)
+                RequirementLineKind::LocalPath {
+                    editable: false,
+                    ..
+                }
             ));
             assert!(matches!(
                 classify_requirement_line(&format!("-e {input}")),
-                RequirementLineKind::LocalPath(_)
+                RequirementLineKind::LocalPath { editable: true, .. }
             ));
         }
 
@@ -2379,7 +2385,7 @@ dependencies = ["requests>=2.0", "Flask"]
             "raise RuntimeError('setup.py must not be executed')\n",
         )
         .unwrap();
-        fs::write(project.join("requirements.txt"), "./local_package\n").unwrap();
+        fs::write(project.join("requirements.txt"), "-e ./local_package\n").unwrap();
 
         let dependencies = discover_dependencies(&project).unwrap();
 
@@ -2392,6 +2398,26 @@ dependencies = ["requests>=2.0", "Flask"]
         assert!(dependencies.iter().any(|dependency| {
             dependency.name == "flask" && dependency.source == local_project.join("pyproject.toml")
         }));
+
+        fs::remove_dir_all(project).unwrap();
+    }
+
+    #[test]
+    fn skips_editable_local_project_with_invalid_metadata_and_continues() {
+        let project = temporary_project();
+        let local_project = project.join("local_package");
+        fs::create_dir_all(&local_project).unwrap();
+        fs::write(local_project.join("pyproject.toml"), "[project\n").unwrap();
+        fs::write(
+            project.join("requirements.txt"),
+            "-e ./local_package\nflask==3.0\n",
+        )
+        .unwrap();
+
+        let dependencies = discover_dependencies(&project).unwrap();
+
+        assert_eq!(dependencies.len(), 1);
+        assert_eq!(dependencies[0].name, "flask");
 
         fs::remove_dir_all(project).unwrap();
     }

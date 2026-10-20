@@ -279,7 +279,7 @@ fn parse_editable_requirement(line: &str) -> Option<&str> {
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum RequirementLineKind<'a> {
     Editable(&'a str),
-    LocalPath(&'a str),
+    LocalPath { path: &'a str, editable: bool },
     PipOption(&'a str),
     Package(&'a str),
 }
@@ -326,12 +326,18 @@ pub(crate) fn resolve_local_path(requirement: &str, source: &Path) -> PathBuf {
 pub(crate) fn classify_requirement_line(line: &str) -> RequirementLineKind<'_> {
     if let Some(editable) = parse_editable_requirement(line) {
         if is_local_path(&editable) {
-            RequirementLineKind::LocalPath(editable)
+            RequirementLineKind::LocalPath {
+                path: editable,
+                editable: true,
+            }
         } else {
             RequirementLineKind::Editable(editable)
         }
     } else if is_local_path(line) {
-        RequirementLineKind::LocalPath(line)
+        RequirementLineKind::LocalPath {
+            path: line,
+            editable: false,
+        }
     } else if line.starts_with('-') {
         RequirementLineKind::PipOption(line)
     } else {
@@ -393,13 +399,17 @@ fn discover_from_requirements(
                         );
                     }
                 }
-                RequirementLineKind::LocalPath(_path) => {
-                    let _resolved = resolve_local_path(_path, source);
-                    test_debug!(
-                        "requirements: recognized local path requirement {_path:?} as '{}'",
-                        _resolved.display()
-                    );
-                    discover_local_project_metadata(&_resolved, dependencies)?;
+                RequirementLineKind::LocalPath { path, editable } => {
+                    if editable {
+                        let resolved = resolve_local_path(path, source);
+                        test_debug!(
+                            "requirements: recognized editable local path requirement {path:?} as '{}'",
+                            resolved.display()
+                        );
+                        discover_editable_local_project_metadata(&resolved, dependencies);
+                    } else {
+                        test_debug!("requirements: recognized local path requirement {path:?}");
+                    }
                 }
                 RequirementLineKind::PipOption(_option) => {
                     test_debug!("requirements: skipping unsupported option {_option:?}");
@@ -429,13 +439,17 @@ fn discover_from_requirements(
                 RequirementLineKind::Package(package) => {
                     add_requirement(package, source, logical_line_number, dependencies)?;
                 }
-                RequirementLineKind::LocalPath(_path) => {
-                    let _resolved = resolve_local_path(_path, source);
-                    test_debug!(
-                        "requirements: recognized local path requirement {_path:?} as '{}'",
-                        _resolved.display()
-                    );
-                    discover_local_project_metadata(&_resolved, dependencies)?;
+                RequirementLineKind::LocalPath { path, editable } => {
+                    if editable {
+                        let resolved = resolve_local_path(path, source);
+                        test_debug!(
+                            "requirements: recognized editable local path requirement {path:?} as '{}'",
+                            resolved.display()
+                        );
+                        discover_editable_local_project_metadata(&resolved, dependencies);
+                    } else {
+                        test_debug!("requirements: recognized local path requirement {path:?}");
+                    }
                 }
                 RequirementLineKind::PipOption(_option) => {
                     test_debug!("requirements: skipping unsupported option {_option:?}");
@@ -476,22 +490,36 @@ fn discover_from_pyproject(
     Ok(())
 }
 
-fn discover_local_project_metadata(
+fn discover_editable_local_project_metadata(
     project_path: &Path,
     dependencies: &mut Vec<Dependency>,
-) -> Result<(), String> {
+) {
     let pyproject = project_path.join("pyproject.toml");
     if !pyproject.is_file() {
-        test_debug!(
-            "local requirement '{}': no pyproject.toml found",
+        eprintln!(
+            "warning: skipping editable local requirement '{}': no pyproject.toml found",
             project_path.display()
         );
-        return Ok(());
+        return;
     }
 
-    let contents = fs::read_to_string(&pyproject)
-        .map_err(|error| format!("failed to read '{}': {error}", pyproject.display()))?;
-    discover_from_pyproject(&contents, &pyproject, dependencies)
+    let contents = match fs::read_to_string(&pyproject) {
+        Ok(contents) => contents,
+        Err(error) => {
+            eprintln!(
+                "warning: skipping editable local requirement '{}': failed to read metadata: {error}",
+                project_path.display()
+            );
+            return;
+        }
+    };
+
+    if let Err(error) = discover_from_pyproject(&contents, &pyproject, dependencies) {
+        eprintln!(
+            "warning: skipping editable local requirement '{}': invalid metadata: {error}",
+            project_path.display()
+        );
+    }
 }
 
 fn has_valid_percent_encoding(value: &str) -> bool {
