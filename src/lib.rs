@@ -34,7 +34,8 @@ pub use requirements::{ParsedRequirement, parse_requirement};
 use compatibility::{compare_versions, package_version_satisfies};
 #[cfg(test)]
 use dependencies::{
-    RequirementLineKind, classify_requirement_line, resolve_local_path, strip_inline_comment,
+    RequirementLineKind, classify_requirement_line, local_requirement_diagnostic,
+    resolve_local_path, strip_inline_comment,
 };
 #[cfg(test)]
 use package_name::normalize_package_name;
@@ -48,8 +49,8 @@ mod tests {
     use super::{
         Command, Dependency, PackageRelease, ParsedRequirement, RequirementLineKind,
         classify_requirement_line, dependency_applies_to_environment, discover_dependencies,
-        normalize_package_name, parse_args, parse_requirement, resolve_local_path,
-        select_package_release,
+        local_requirement_diagnostic, normalize_package_name, parse_args, parse_requirement,
+        resolve_local_path, select_package_release,
     };
     use std::fs;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -2420,6 +2421,20 @@ dependencies = ["requests>=2.0", "Flask"]
         assert_eq!(dependencies[0].name, "flask");
 
         fs::remove_dir_all(project).unwrap();
+    }
+
+    #[test]
+    fn reports_context_for_unparseable_editable_local_requirement() {
+        let source = std::path::Path::new("requirements/base.txt");
+        let project_path = std::path::Path::new("local_package");
+
+        let diagnostic =
+            local_requirement_diagnostic(source, Some(7), project_path, "invalid metadata");
+
+        assert_eq!(
+            diagnostic,
+            "warning: requirements/base.txt:7: skipping editable local requirement 'local_package': invalid metadata"
+        );
     }
 
     // Verify discovery of requirements with line continuation.

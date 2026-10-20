@@ -406,7 +406,12 @@ fn discover_from_requirements(
                             "requirements: recognized editable local path requirement {path:?} as '{}'",
                             resolved.display()
                         );
-                        discover_editable_local_project_metadata(&resolved, dependencies);
+                        discover_editable_local_project_metadata(
+                            &resolved,
+                            source,
+                            logical_line_number,
+                            dependencies,
+                        );
                     } else {
                         test_debug!("requirements: recognized local path requirement {path:?}");
                     }
@@ -446,7 +451,12 @@ fn discover_from_requirements(
                             "requirements: recognized editable local path requirement {path:?} as '{}'",
                             resolved.display()
                         );
-                        discover_editable_local_project_metadata(&resolved, dependencies);
+                        discover_editable_local_project_metadata(
+                            &resolved,
+                            source,
+                            logical_line_number,
+                            dependencies,
+                        );
                     } else {
                         test_debug!("requirements: recognized local path requirement {path:?}");
                     }
@@ -492,13 +502,20 @@ fn discover_from_pyproject(
 
 fn discover_editable_local_project_metadata(
     project_path: &Path,
+    source: &Path,
+    line_number: Option<usize>,
     dependencies: &mut Vec<Dependency>,
 ) {
     let pyproject = project_path.join("pyproject.toml");
     if !pyproject.is_file() {
         eprintln!(
-            "warning: skipping editable local requirement '{}': no pyproject.toml found",
-            project_path.display()
+            "{}",
+            local_requirement_diagnostic(
+                source,
+                line_number,
+                project_path,
+                "no pyproject.toml found"
+            )
         );
         return;
     }
@@ -507,8 +524,13 @@ fn discover_editable_local_project_metadata(
         Ok(contents) => contents,
         Err(error) => {
             eprintln!(
-                "warning: skipping editable local requirement '{}': failed to read metadata: {error}",
-                project_path.display()
+                "{}",
+                local_requirement_diagnostic(
+                    source,
+                    line_number,
+                    project_path,
+                    &format!("failed to read metadata: {error}")
+                )
             );
             return;
         }
@@ -516,10 +538,30 @@ fn discover_editable_local_project_metadata(
 
     if let Err(error) = discover_from_pyproject(&contents, &pyproject, dependencies) {
         eprintln!(
-            "warning: skipping editable local requirement '{}': invalid metadata: {error}",
-            project_path.display()
+            "{}",
+            local_requirement_diagnostic(
+                source,
+                line_number,
+                project_path,
+                &format!("invalid metadata: {error}")
+            )
         );
     }
+}
+
+pub(crate) fn local_requirement_diagnostic(
+    source: &Path,
+    line_number: Option<usize>,
+    project_path: &Path,
+    cause: &str,
+) -> String {
+    let location = line_number
+        .map(|line| format!("{}:{line}", source.display()))
+        .unwrap_or_else(|| source.display().to_string());
+    format!(
+        "warning: {location}: skipping editable local requirement '{}': {cause}",
+        project_path.display()
+    )
 }
 
 fn has_valid_percent_encoding(value: &str) -> bool {

@@ -133,7 +133,7 @@ automatically.
   - [x] Resolve relative local paths against the containing requirements file.
   - [x] Read local project metadata without executing project code.
   - [x] Define and implement editable local project behavior when metadata is unavailable.
-  - [ ] Return a contextual unsupported/invalid-input error rather than silently dropping an unparseable local requirement.
+  - [x] Return a contextual unsupported/invalid-input error rather than silently dropping an unparseable local requirement.
   - [ ] Test absolute, relative, missing, unreadable, and editable local paths in temporary projects.
 - [/] Recognize valid package-name punctuation.
   - [x] Accept ASCII letters, digits, dot, underscore, and hyphen in the parser.
