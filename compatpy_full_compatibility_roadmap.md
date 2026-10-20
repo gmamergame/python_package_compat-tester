@@ -127,14 +127,14 @@ automatically.
   - [x] Retain editable Git extras and combined `egg`/subdirectory fragments.
   - [x] Discover supported Mercurial, Subversion, and Bazaar direct-reference schemes.
   - [x] Cover Git revision identifiers in the tested branch, tag, and commit formats.
-- [/] Handle local paths and editable installs where supported.
+- [x] Handle local paths and editable installs where supported.
   - [x] Handle editable VCS references with valid `#egg=` metadata.
   - [x] Recognize local path requirement syntax separately from unsupported pip options.
   - [x] Resolve relative local paths against the containing requirements file.
   - [x] Read local project metadata without executing project code.
   - [x] Define and implement editable local project behavior when metadata is unavailable.
   - [x] Return a contextual unsupported/invalid-input error rather than silently dropping an unparseable local requirement.
-  - [ ] Test absolute, relative, missing, unreadable, and editable local paths in temporary projects.
+  - [x] Test absolute, relative, missing, unreadable, and editable local paths in temporary projects.
 - [/] Recognize valid package-name punctuation.
   - [x] Accept ASCII letters, digits, dot, underscore, and hyphen in the parser.
   - [ ] Test leading/trailing punctuation and consecutive punctuation against the PEP 508 grammar.

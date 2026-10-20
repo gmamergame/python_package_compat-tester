@@ -2437,6 +2437,50 @@ dependencies = ["requests>=2.0", "Flask"]
         );
     }
 
+    #[test]
+    fn covers_local_path_variants_in_temporary_projects() {
+        let project = temporary_project();
+        let relative_project = project.join("relative_package");
+        let absolute_project = project.join("absolute_package");
+        let unreadable_project = project.join("unreadable_package");
+
+        for local_project in [&relative_project, &absolute_project] {
+            fs::create_dir_all(local_project).unwrap();
+            fs::write(
+                local_project.join("pyproject.toml"),
+                r#"[project]
+dependencies = ["requests>=2.0"]
+"#,
+            )
+            .unwrap();
+        }
+        fs::create_dir_all(unreadable_project.join("pyproject.toml")).unwrap();
+
+        let absolute_requirement = absolute_project.to_string_lossy();
+        fs::write(
+            project.join("requirements.txt"),
+            format!(
+                "-e ./relative_package\n-e {absolute_requirement}\n-e ./missing_package\n-e ./unreadable_package\nflask==3.0\n"
+            ),
+        )
+        .unwrap();
+
+        let dependencies = discover_dependencies(&project).unwrap();
+
+        assert_eq!(dependencies.len(), 3);
+        assert_eq!(dependencies[0].name, "flask");
+        assert_eq!(dependencies[1].name, "requests");
+        assert_eq!(dependencies[2].name, "requests");
+        assert!(
+            dependencies
+                .iter()
+                .filter(|dependency| dependency.name == "requests")
+                .all(|dependency| dependency.source.ends_with("pyproject.toml"))
+        );
+
+        fs::remove_dir_all(project).unwrap();
+    }
+
     // Verify discovery of requirements with line continuation.
 
     #[test]
