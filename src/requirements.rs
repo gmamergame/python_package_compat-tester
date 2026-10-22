@@ -1,6 +1,6 @@
 use url::Url;
 
-use crate::package_name::normalize_package_name;
+use crate::package_name::{is_valid_package_name, normalize_package_name};
 
 fn has_valid_percent_encoding(value: &str) -> bool {
     let bytes = value.as_bytes();
@@ -150,11 +150,7 @@ pub fn parse_requirement(input: &str) -> Result<ParsedRequirement, String> {
     };
 
     // Validate the package name.
-    if name.is_empty()
-        || !name
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || "._-".contains(character))
-    {
+    if !is_valid_package_name(&name) {
         return Err("Invalid package name".to_string());
     }
 

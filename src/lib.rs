@@ -133,6 +133,31 @@ mod tests {
         assert_eq!(normalize_package_name("my.-_package"), "my-package");
     }
 
+    #[test]
+    fn package_names_follow_pep508_punctuation_rules() {
+        for invalid_name in [
+            "-example", ".example", "_example", "example-", "example.", "example_",
+        ] {
+            assert!(
+                parse_requirement(invalid_name).is_err(),
+                "{invalid_name:?} must be rejected"
+            );
+        }
+
+        for valid_name in [
+            "example",
+            "example--name",
+            "example..name",
+            "example__name",
+            "example.-_name",
+        ] {
+            assert!(
+                parse_requirement(valid_name).is_ok(),
+                "{valid_name:?} must be accepted"
+            );
+        }
+    }
+
     // Verify parsing requirement with canonical name without changing other fields.
 
     #[test]

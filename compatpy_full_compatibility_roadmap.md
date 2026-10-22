@@ -137,7 +137,7 @@ automatically.
   - [x] Test absolute, relative, missing, unreadable, and editable local paths in temporary projects.
 - [/] Recognize valid package-name punctuation.
   - [x] Accept ASCII letters, digits, dot, underscore, and hyphen in the parser.
-  - [ ] Test leading/trailing punctuation and consecutive punctuation against the PEP 508 grammar.
+  - [x] Test leading/trailing punctuation and consecutive punctuation against the PEP 508 grammar.
   - [ ] Test non-ASCII and whitespace behavior against the accepted grammar.
   - [ ] Normalize valid punctuation variants only at package-identity boundaries.
 - [/] Support standard PEP 508 requirement syntax.
